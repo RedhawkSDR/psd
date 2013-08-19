@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
+source distribution.
+
+This file is part of REDHAWK Basic Components psd.
+
+REDHAWK Basic Components psd is free software: you can redistribute it and/or modify it under the terms of 
+the GNU General Public License as published by the Free Software Foundation, either 
+version 3 of the License, or (at your option) any later version.
+
+REDHAWK Basic Components psd is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this 
+program.  If not, see http://www.gnu.org/licenses/.
+-->
+<!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
+<properties>
+  <simple id="fftSize" mode="readwrite" type="ulong">
+    <value>32768</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="overlap" mode="readwrite" type="long">
+    <description>How many elements to overlap?
+This MUST be less than the fftSize
+If you go negative you skip elements -- this might be desirable for very fast data rates if you are having a hard time keeping up</description>
+    <value>0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="numAvg" mode="readwrite" type="ulong">
+    <value>0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="logCoeficient" mode="readwrite" type="float">
+    <value>0.0</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+</properties>

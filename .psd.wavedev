@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ASCII"?>
+<!-- 
+This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
+source distribution.
+
+This file is part of REDHAWK Basic Components psd.
+
+REDHAWK Basic Components psd is free software: you can redistribute it and/or modify it under the terms of 
+the GNU General Public License as published by the Free Software Foundation, either 
+version 3 of the License, or (at your option) any later version.
+
+REDHAWK Basic Components psd is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this 
+program.  If not, see http://www.gnu.org/licenses/.
+-->
+
+<codegen:WaveDevSettings xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:codegen="http://www.redhawk.gov/model/codegen">
+  <implSettings key="cpp">
+    <value outputDir="cpp" template="redhawk.codegen.jinja.cpp.component.pull" generatorId="gov.redhawk.ide.codegen.jinja.cplusplus.CplusplusGenerator" primary="true">
+      <generatedFileCRCs crc="1746641546" file="reconf"/>
+      <generatedFileCRCs crc="1528487234" file="port_impl.cpp"/>
+      <generatedFileCRCs crc="1942573142" file="struct_props.h"/>
+      <generatedFileCRCs crc="2591144967" file="psd.h"/>
+      <generatedFileCRCs crc="1861834135" file="psd.cpp"/>
+      <generatedFileCRCs crc="345915388" file="port_impl.h"/>
+      <generatedFileCRCs crc="383973966" file="configure.ac"/>
+      <generatedFileCRCs crc="864280150" file="build.sh"/>
+      <generatedFileCRCs crc="2194864747" file="psd_base.cpp"/>
+      <generatedFileCRCs crc="857356532" file="psd_base.h"/>
+      <generatedFileCRCs crc="3648797681" file="../psd.spec"/>
+      <generatedFileCRCs crc="1038604606" file="main.cpp"/>
+      <generatedFileCRCs crc="3162554975" file="Makefile.am"/>
+    </value>
+  </implSettings>
+</codegen:WaveDevSettings>
