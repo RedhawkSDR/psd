@@ -70,7 +70,11 @@ psd_i::psd_i(const char *uuid, const char *label) :
    realPsd_(new RealPsd(realIn_, psdOut_, fftOut_, fftSize,true)),
    complexPsd_(NULL),
    vecMean_(numAvg, psdOut_, psdAverage_),
-   updateSRI_(false)
+   updateSRI_(false),
+   doPSD(false),
+   doFFT(false),
+   listener(*this, &psd_i::callBackFunc)
+
 {
 	setPropertyChangeListener("fftSize", this, &psd_i::fftSizeChanged);
 	setPropertyChangeListener("overlap", this, &psd_i::overlapChanged);
@@ -78,6 +82,8 @@ psd_i::psd_i(const char *uuid, const char *label) :
 	fftSizeChanged("");
 	frameBuffer_.setOverlap(overlap);
 
+	psd_dataFloat_out->setNewConnectListener(&listener);
+	fft_dataFloat_out->setNewConnectListener(&listener);
 }
 
 psd_i::~psd_i()
@@ -314,10 +320,9 @@ int psd_i::serviceFunction()
 template <typename TimeType>
 void psd_i::serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, std::vector<float>& psdOutVec, std::vector<float>& fftOutVec, std::vector< framebuffer<std::vector<float>::iterator>::frame> & input)
 {
-	if (!input.empty())
+	//make sure ther is input and we have an output hooked up
+	if (!input.empty() && (doPSD || doFFT))
 	{
-		bool doPSD = (psd_dataFloat_out->state()!=BULKIO::IDLE);
-		bool doFFT = (fft_dataFloat_out->state()!=BULKIO::IDLE);
 		for (unsigned int i=0; i!=input.size(); i++)
 		{
 			copyVec(input[i].begin,input[i].end,psdInput);
@@ -383,4 +388,10 @@ void psd_i::numAvgChanged(const std::string& id)
 	boost::mutex::scoped_lock lock(psdLock_);
 	vecMean_.setAvgNum(numAvg);
 	updateSRI_=true;
+}
+
+void psd_i::callBackFunc( const char* connectionId)
+{
+	doPSD = (psd_dataFloat_out->state()!=BULKIO::IDLE);
+	doFFT = (fft_dataFloat_out->state()!=BULKIO::IDLE);
 }

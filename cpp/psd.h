@@ -53,6 +53,11 @@ class psd_i : public psd_base
 		std::vector<float> psdAverage_;
 		boost::mutex psdLock_;
 		bool updateSRI_;
+		bool doPSD;
+		bool doFFT;
+
+        bulkio::MemberConnectionEventListener<psd_i> listener;
+        void callBackFunc( const char* connectionId);
 };
 
 #endif
