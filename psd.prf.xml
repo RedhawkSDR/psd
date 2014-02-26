@@ -19,12 +19,13 @@ program.  If not, see http://www.gnu.org/licenses/.
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
 <properties>
   <simple id="fftSize" mode="readwrite" type="ulong">
+    <description>Size of the fft used in frequency domain transformation.  Larger fft size provides better frequency resolution at the expense of time resolution</description>
     <value>32768</value>
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
   <simple id="overlap" mode="readwrite" type="long">
-    <description>How many elements to overlap?
+    <description>How many input elements to overlap?
 This MUST be less than the fftSize
 If you go negative you skip elements -- this might be desirable for very fast data rates if you are having a hard time keeping up</description>
     <value>0</value>
@@ -32,11 +33,14 @@ If you go negative you skip elements -- this might be desirable for very fast da
     <action type="external"/>
   </simple>
   <simple id="numAvg" mode="readwrite" type="ulong">
+    <description>Number of output frames to average together for one frame of psd output data.  fft outputs port never averages the data</description>
     <value>0</value>
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
   <simple id="logCoeficient" mode="readwrite" type="float">
+    <description>if this is > 0 apply a log to transform the psd into a log scale.  This coeficient is then multipled to the output of the log.  
+Typical value would be either 20 or 10.</description>
     <value>0.0</value>
     <kind kindtype="configure"/>
     <action type="external"/>

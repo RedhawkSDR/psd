@@ -23,6 +23,9 @@ program.  If not, see http://www.gnu.org/licenses/.
   <author>
     <name>null</name>
   </author>
+  <description>FFT based power spectral density component transforms data from the time to the frequency domain.  Output data is framed data where each frame contains the frequncy domain representation of a subsection of the input.  
+
+This component provides both the real valued psd and the complex fft outputs.</description>
   <propertyfile type="PRF">
     <localfile name="psd.prf.xml"/>
   </propertyfile>
