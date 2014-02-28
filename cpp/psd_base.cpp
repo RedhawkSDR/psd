@@ -163,9 +163,9 @@ void psd_base::loadProperties()
                 "external",
                 "configure");
 
-    addProperty(logCoeficient,
+    addProperty(logCoefficient,
                 0.0,
-                "logCoeficient",
+                "logCoefficient",
                 "",
                 "readwrite",
                 "",

@@ -137,7 +137,7 @@ void PsdProcessor::flush()
 		delete complexPsd_;
 }
 
-PsdProcessor::ParamStruct PsdProcessor::process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoeficient)
+PsdProcessor::ParamStruct PsdProcessor::process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoefficient)
 {
 	if (cmplx)
 	{
@@ -175,21 +175,21 @@ PsdProcessor::ParamStruct PsdProcessor::process(std::vector<float>& input, bool 
 	frameBuffer_.newData(input,framedData_);
 	if (complexPsd_)
 	{
-		serviceLoop(complexPsd_, complexIn_,doPSD, doFFT, logCoeficient);
+		serviceLoop(complexPsd_, complexIn_,doPSD, doFFT, logCoefficient);
 	}
 	else if (realPsd_)
 	{
-		serviceLoop(realPsd_, realIn_,doPSD, doFFT, logCoeficient);
+		serviceLoop(realPsd_, realIn_,doPSD, doFFT, logCoefficient);
 	}
 	else
 	{
-		std::cerr<<"this shoudln't happen - no real or complex psd created"<<std::endl;
+		std::cerr<<"this shouldn't happen - no real or complex psd created"<<std::endl;
 	}
 	return params_;
 }
 
 template <typename TimeType>
-void PsdProcessor::serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoeficient)
+void PsdProcessor::serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoefficient)
 {
 	//make sure ther is input and we have an output hooked up
 	if (!framedData_.empty())
@@ -208,11 +208,11 @@ void PsdProcessor::serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPS
 			if (doFFT)
 				appendVec(fftOut_,fftOutVec_);
 		}
-		if (!psdOutVec_.empty() && logCoeficient >0)
+		if (!psdOutVec_.empty() && logCoefficient >0)
 		{
 			//take the log of the output if necessary
 			for (std::vector<float>::iterator i=psdOutVec_.begin(); i!=psdOutVec_.end(); i++)
-				*i=logCoeficient*log10(*i);
+				*i=logCoefficient*log10(*i);
 		}
 	}
 }
@@ -377,8 +377,8 @@ int psd_i::serviceFunction()
 	}
 	if (tmp->inputQueueFlushed)
 	{
-		LOG_WARN(psd_i, "input Q flushed - data has been thrown on the floor.  flushing internal buffers");
-		//flush all our processor states if the Q flushed
+		LOG_WARN(psd_i, "Input queue flushed - data has been thrown on the floor.  Flushing internal buffers.");
+		//flush all our processor states if the queue flushed
 		boost::mutex::scoped_lock lock(psdLock_);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->flush();
@@ -396,7 +396,7 @@ int psd_i::serviceFunction()
 		}
 
 		//process with the PsdState right here
-		params = i->second->process(tmp->dataBuffer, tmp->SRI.mode==1, doPSD, doFFT, logCoeficient);
+		params = i->second->process(tmp->dataBuffer, tmp->SRI.mode==1, doPSD, doFFT, logCoefficient);
 		if (tmp->EOS)
 		{
 			delete i->second;

@@ -122,7 +122,7 @@ class psd_base : public Resource_impl
         CORBA::ULong fftSize;
         CORBA::Long overlap;
         CORBA::ULong numAvg;
-        float logCoeficient;
+        float logCoefficient;
 
         // Ports
         bulkio::InFloatPort *dataFloat_in;

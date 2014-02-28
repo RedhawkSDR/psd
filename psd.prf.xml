@@ -33,14 +33,14 @@ If you go negative you skip elements -- this might be desirable for very fast da
     <action type="external"/>
   </simple>
   <simple id="numAvg" mode="readwrite" type="ulong">
-    <description>Number of output frames to average together for one frame of psd output data.  fft outputs port never averages the data</description>
+    <description>Number of output frames to average together for one frame of psd output data.  The fft outputs port never averages the data</description>
     <value>0</value>
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
-  <simple id="logCoeficient" mode="readwrite" type="float">
-    <description>if this is > 0 apply a log to transform the psd into a log scale.  This coeficient is then multipled to the output of the log.  
-Typical value would be either 20 or 10.</description>
+  <simple id="logCoefficient" mode="readwrite" type="float">
+    <description>if this is > 0 apply a log to transform the psd to a log scale.  This coefficient is then multiplied by the output value of the log.
+Typical values for this property are either 10 or 20.</description>
     <value>0.0</value>
     <kind kindtype="configure"/>
     <action type="external"/>

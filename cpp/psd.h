@@ -28,12 +28,12 @@ class psd_i;
 
 class PsdProcessor
 {
-	//class to take care of psd procesing
-	//hanldes real/complex with transitions and
+	//class to take care of psd processing
+	//handles real/complex with transitions and
 	//output averaging and overlap and buffering and db conversion
 	//basically - you give it time domain data and it gives you frequency domain
 	//
-	//this class does both fft,psd, or both (or neither) as requested at processigng time
+	//this class does both fft,psd, or both (or neither) as requested at processing time
 public:
 	struct ParamStruct {
 		size_t fftSz;
@@ -52,7 +52,7 @@ public:
 	void updateOverlap(int overlap);
 	void updateNumAvg(size_t avg);
 	void flush();
-	ParamStruct process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoeficient);
+	ParamStruct process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoefficient);
 
 private:
 	//for output
@@ -60,7 +60,7 @@ private:
 	std::vector<float>& fftOutVec_;
 
 	template <typename TimeType>
-	void serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoeficient);
+	void serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoefficient);
 
 	framebuffer<std::vector<float>::iterator> frameBuffer_;
 	std::vector<framebuffer<std::vector<float>::iterator>::frame> framedData_;
