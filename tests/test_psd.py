@@ -88,9 +88,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         numStride = len(inData)/numLoop
         print "numStride = ", numStride
 
+        eos=False
         for i in xrange(numLoop):
             time.sleep(.01)           
-            self.src.push(inData[i*numStride:(i+1)*numStride], complexData=True)
+            if i==numLoop-1:
+                eos=True
+            self.src.push(inData[i*numStride:(i+1)*numStride], complexData=True, EOS=eos)
         
         time.sleep(1.5)
         

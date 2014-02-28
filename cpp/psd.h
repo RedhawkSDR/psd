@@ -26,6 +26,63 @@
 
 class psd_i;
 
+class PsdProcessor
+{
+	//class to take care of psd procesing
+	//hanldes real/complex with transitions and
+	//output averaging and overlap and buffering and db conversion
+	//basically - you give it time domain data and it gives you frequency domain
+	//
+	//this class does both fft,psd, or both (or neither) as requested at processigng time
+public:
+	struct ParamStruct {
+		size_t fftSz;
+		bool updateSRI;
+		size_t strideSize;
+		size_t numAverage;
+	};
+	PsdProcessor(std::vector<float>& psdOutVec,
+			 std::vector<float>& fftOutVec,
+			 size_t fftSize,
+			 int overlap,
+			 size_t numAvg);
+	~PsdProcessor();
+
+	void updateFftSize(size_t fftSize);
+	void updateOverlap(int overlap);
+	void updateNumAvg(size_t avg);
+	void flush();
+	ParamStruct process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoeficient);
+
+private:
+	//for output
+	std::vector<float>& psdOutVec_;
+	std::vector<float>& fftOutVec_;
+
+	template <typename TimeType>
+	void serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoeficient);
+
+	framebuffer<std::vector<float>::iterator> frameBuffer_;
+	std::vector<framebuffer<std::vector<float>::iterator>::frame> framedData_;
+
+	RealPsd* realPsd_;
+	ComplexPsd* complexPsd_;
+	//internal processing vectors
+
+	VectorMean<float, fftwf_allocator<float> > vecMean_;
+	RealFFTWVector realIn_;
+	ComplexFFTWVector complexIn_;
+	ComplexFFTWVector fftOut_;
+	RealFFTWVector psdOut_;
+
+	//internal vector for psd averaging
+	std::vector<float> psdAverage_;
+
+	int overlap_;
+	ParamStruct params_;
+
+};
+
 class psd_i : public psd_base
 {
     ENABLE_LOGGING
@@ -37,22 +94,15 @@ class psd_i : public psd_base
 		void fftSizeChanged(const std::string& id);
 		void overlapChanged(const std::string& id);
 		void numAvgChanged(const std::string& id);
-		template <typename TimeType>
-		void serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, std::vector<float>& psdOutVec, std::vector<float>& fftOutVec, std::vector< framebuffer<std::vector<float>::iterator>::frame> & input);
 
-		framebuffer<std::vector<float>::iterator> frameBuffer_;
+		typedef std::map<std::string, PsdProcessor*> map_type;
+		map_type stateMap;
 
-		RealPsd* realPsd_;
-		ComplexPsd* complexPsd_;
-		VectorMean<float, fftwf_allocator<float> > vecMean_;
-		RealFFTWVector realIn_;
-		ComplexFFTWVector complexIn_;
-		ComplexFFTWVector fftOut_;
-		RealFFTWVector psdOut_;
-		std::vector<float> psdOutput_;
-		std::vector<float> psdAverage_;
+		std::vector<float> psdOutVec_;
+		std::vector<float> fftOutVec_;
+
 		boost::mutex psdLock_;
-		bool updateSRI_;
+
 		bool doPSD;
 		bool doFFT;
 
