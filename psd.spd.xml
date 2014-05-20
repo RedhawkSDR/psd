@@ -21,7 +21,7 @@ program.  If not, see http://www.gnu.org/licenses/.
 <softpkg id="DCE:5a562902-e63e-419e-9e2f-c9871fd31cbd" name="psd" type="sca_compliant">
   <title></title>
   <author>
-    <name>null</name>
+    <name>REDHAWK</name>
   </author>
   <description>FFT-based power spectral density (PSD) component that transforms data from the time domain to the frequency domain.  Output data is framed data where each frame contains the frequncy domain representation of a subsection of the input.  
 
@@ -33,7 +33,7 @@ This component provides both the real-valued PSD and the complex FFT outputs.</d
     <localfile name="psd.scd.xml"/>
   </descriptor>
   <implementation id="cpp">
-    <description>The implementation contains descriptive information about the template for a software component.</description>
+    <description>C++ implementation</description>
     <code type="Executable">
       <localfile name="cpp/psd"/>
       <entrypoint>cpp/psd</entrypoint>
@@ -44,14 +44,14 @@ This component provides both the real-valued PSD and the complex FFT outputs.</d
     <os name="Linux"/>
     <dependency type="runtime_requirements">
       <softpkgref>
-        <localfile name="/components/fftlib/fftlib.spd.xml"/>
-        <implref refid="firstImplementation"/>
+        <localfile name="/deps/fftlib/fftlib.spd.xml"/>
+        <implref refid="cpp"/>
       </softpkgref>
     </dependency>
     <dependency type="runtime_requirements">
       <softpkgref>
-        <localfile name="/components/dsp/dsp.spd.xml"/>
-        <implref refid="firstImplementation"/>
+        <localfile name="/deps/dsp/dsp.spd.xml"/>
+        <implref refid="cpp"/>
       </softpkgref>
     </dependency>
     <processor name="x86"/>

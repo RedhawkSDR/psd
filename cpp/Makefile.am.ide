@@ -25,6 +25,3 @@ redhawk_SOURCES_auto += psd.cpp
 redhawk_SOURCES_auto += psd.h
 redhawk_SOURCES_auto += psd_base.cpp
 redhawk_SOURCES_auto += psd_base.h
-redhawk_LDFLAGS_auto = -lfftw3f
-redhawk_INCLUDES_auto = -I../../dsp/inc
-redhawk_INCLUDES_auto += -I../../fftlib/inc

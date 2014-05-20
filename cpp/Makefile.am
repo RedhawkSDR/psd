@@ -40,6 +40,6 @@ distclean-local:
 # you wish to manually control these options.
 include $(srcdir)/Makefile.am.ide
 psd_SOURCES = $(redhawk_SOURCES_auto)
-psd_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto) -I../../dsp/inc -I../../fftlib/inc
-psd_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto) -ldsp -lfftlib
-psd_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto) -L../../dsp/Release -L../../fftlib/Release
+psd_CXXFLAGS = -Wall $(PROJECTDEPS_CFLAGS) $(BOOST_CPPFLAGS) $(INTERFACEDEPS_CFLAGS) $(redhawk_INCLUDES_auto)
+psd_LDADD = $(PROJECTDEPS_LIBS) $(BOOST_LDFLAGS) $(BOOST_THREAD_LIB) $(BOOST_SYSTEM_LIB) $(INTERFACEDEPS_LIBS) $(redhawk_LDADD_auto)
+psd_LDFLAGS = -Wall $(redhawk_LDFLAGS_auto)
