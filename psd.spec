@@ -44,8 +44,16 @@ Requires:       redhawk >= 1.10
 BuildRequires:  bulkioInterfaces
 Requires:       bulkioInterfaces
 
+# Softpkg requirements
+BuildRequires:  dsp-devel >= 1.0.0
+Requires:       dsp >= 1.0.0
+BuildRequires:  fftlib-devel >= 1.0.0
+Requires:       fftlib >= 1.0.0
+
 %description
 Component %{name}
+ * Commit: __REVISION__
+ * Source Date/Time: __DATETIME__
 
 
 %prep
