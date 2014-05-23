@@ -135,6 +135,9 @@ void PsdProcessor::flush()
 		delete realPsd_;
 	if (complexPsd_!=NULL)
 		delete complexPsd_;
+
+	realPsd_ = NULL;
+	complexPsd_ = NULL;
 }
 
 PsdProcessor::ParamStruct PsdProcessor::process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoefficient)
@@ -224,9 +227,9 @@ psd_i::psd_i(const char *uuid, const char *label) :
    listener(*this, &psd_i::callBackFunc)
 
 {
-	setPropertyChangeListener("fftSize", this, &psd_i::fftSizeChanged);
-	setPropertyChangeListener("overlap", this, &psd_i::overlapChanged);
-	setPropertyChangeListener("numAvg", this, &psd_i::numAvgChanged);
+	addPropertyChangeListener("fftSize", this, &psd_i::fftSizeChanged);
+	addPropertyChangeListener("overlap", this, &psd_i::overlapChanged);
+	addPropertyChangeListener("numAvg", this, &psd_i::numAvgChanged);
 
 	psd_dataFloat_out->setNewConnectListener(&listener);
 	fft_dataFloat_out->setNewConnectListener(&listener);
@@ -383,7 +386,7 @@ int psd_i::serviceFunction()
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->flush();
 	}
-	bool updateSRI;
+	bool updateSRI = false;
 	PsdProcessor::ParamStruct params;
 	{
 		boost::mutex::scoped_lock lock(psdLock_);
@@ -441,25 +444,35 @@ int psd_i::serviceFunction()
 	return NORMAL;
 }
 
-void psd_i::fftSizeChanged(const std::string& id)
+void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue)
 {
-	boost::mutex::scoped_lock lock(psdLock_);
-	for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
-		i->second->updateFftSize(fftSize);
+	if (*oldValue != *newValue) {
+		boost::mutex::scoped_lock lock(psdLock_);
+		fftSize = *newValue;
+		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++) {
+			i->second->updateFftSize(fftSize);
+		}
+	}
 }
 
-void psd_i::overlapChanged(const std::string& id)
+void psd_i::numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue)
 {
-	boost::mutex::scoped_lock lock(psdLock_);
-	for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
-		i->second->updateFftSize(fftSize);
+	if (*oldValue != *newValue) {
+		boost::mutex::scoped_lock lock(psdLock_);
+		numAvg = *newValue;
+		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
+			i->second->updateNumAvg(numAvg);
+	}
 }
 
-void psd_i::numAvgChanged(const std::string& id)
+void psd_i::overlapChanged(const int *oldValue, const int *newValue)
 {
-	boost::mutex::scoped_lock lock(psdLock_);
-	for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
-		i->second->updateFftSize(fftSize);
+	if (*oldValue != *newValue) {
+		boost::mutex::scoped_lock lock(psdLock_);
+		overlap = *newValue;
+		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
+			i->second->updateOverlap(overlap);
+	}
 }
 
 void psd_i::callBackFunc( const char* connectionId)

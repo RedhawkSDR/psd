@@ -91,9 +91,9 @@ class psd_i : public psd_base
         ~psd_i();
         int serviceFunction();
 	private:
-		void fftSizeChanged(const std::string& id);
-		void overlapChanged(const std::string& id);
-		void numAvgChanged(const std::string& id);
+		void fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue);
+		void numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue);
+		void overlapChanged(const int *oldValue, const int *newValue);
 
 		typedef std::map<std::string, PsdProcessor*> map_type;
 		map_type stateMap;
