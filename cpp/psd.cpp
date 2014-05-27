@@ -448,7 +448,6 @@ void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *new
 {
 	if (*oldValue != *newValue) {
 		boost::mutex::scoped_lock lock(psdLock_);
-		fftSize = *newValue;
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++) {
 			i->second->updateFftSize(fftSize);
 		}
@@ -459,7 +458,6 @@ void psd_i::numAvgChanged(const unsigned int *oldValue, const unsigned int *newV
 {
 	if (*oldValue != *newValue) {
 		boost::mutex::scoped_lock lock(psdLock_);
-		numAvg = *newValue;
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateNumAvg(numAvg);
 	}
@@ -469,7 +467,6 @@ void psd_i::overlapChanged(const int *oldValue, const int *newValue)
 {
 	if (*oldValue != *newValue) {
 		boost::mutex::scoped_lock lock(psdLock_);
-		overlap = *newValue;
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateOverlap(overlap);
 	}
