@@ -197,6 +197,9 @@ void PsdProcessor::serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPS
 	//make sure ther is input and we have an output hooked up
 	if (!framedData_.empty())
 	{
+		psdOutVec_.clear();
+		fftOutVec_.clear();
+
 		for (unsigned int i=0; i!=framedData_.size(); i++)
 		{
 			copyVec(framedData_[i].begin,framedData_[i].end,psdInput);
