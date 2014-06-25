@@ -22,26 +22,92 @@ import os
 from omniORB import any
 import time
 from ossie.utils import sb
+from pylab import figure, plot, grid, show, title
+from numpy import cos, sin, arange, pi, correlate, linspace
+import scipy.fftpack
+import numpy as np
+import types
 
+def packCx(data):
+    real=None
+    out=[]
+    for val in data:
+        if real==None:
+            real=val
+        else:
+            out.append(abs(complex(real,val)))
+            real=None
+    return out
+
+def unpackCx(data):
+    out = []
+    for val in data:
+        out.append(float(val.real))
+        out.append(float(val.imag))
+    return out
+
+def plotFreqData(fftSize, sampleRate, pyFFT, fftOut, psdOut):
+    freqs = linspace(0,1,fftSize/2) * (sampleRate/2)
+        
+    figure(1)
+    title("REAL Py fft")
+    plot(freqs, pyFFT)
+       
+    figure(2)
+    title("REAL real fft")
+    plot(freqs, fftOut)
+       
+    figure(3)
+    title("REAL comp psd")
+    plot(freqs, psdOut)
+        
+    grid(True)
+    show(True)
+    
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in psd"""
-
-    """To do BETTER UNIT TESTS NEEDED FOR THIS COMPONENT
-    """
-
+    
+    def setUp(self):
+        """Set up the unit test - this is run before every method that starts with test"""
+        ossie.utils.testing.ScaComponentTestCase.setUp(self)
+        self.src = sb.DataSource()
+        self.fftsink = sb.DataSink()
+        self.psdsink = sb.DataSink()
+        self.comp = sb.launch('../psd.spd.xml')
+        
+        self.src.connect(self.comp)
+        self.comp.connect(self.fftsink, usesPortName='fft_dataFloat_out')
+        self.comp.connect(self.psdsink, usesPortName='psd_dataFloat_out')
+        
+    def tearDown(self):
+        """Finish the unit test - this is run after every method that starts with test"""
+        sb.stop()
+        self.comp.releaseObject()
+        ossie.utils.testing.ScaComponentTestCase.tearDown(self)
+        
+    def validateSRIPushing(self, streamID, outputRate=1.0, fftSize=1.0):
+        xdelta = outputRate/fftSize
+        
+        self.assertEqual(self.fftsink.sri().streamID, streamID)
+        self.assertEqual(self.psdsink.sri().streamID, streamID)
+        
+        self.assertAlmostEqual(self.fftsink.sri().xdelta, xdelta)
+        self.assertAlmostEqual(self.psdsink.sri().xdelta, xdelta)
+        
     def testScaBasicBehavior(self):
         #######################################################################
-        # Launch the component with the default execparams
+        # Launch the resource with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
         execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        self.launch(execparams, initialize=True)
-        
+        self.launch(execparams)
+
         #######################################################################
-        # Verify the basic state of the component
+        # Verify the basic state of the resource
         self.assertNotEqual(self.comp, None)
         self.assertEqual(self.comp.ref._non_existent(), False)
+
         self.assertEqual(self.comp.ref._is_a("IDL:CF/Resource:1.0"), True)
-        
+
         #######################################################################
         # Validate that query returns all expected parameters
         # Query of '[]' should return the following set of properties
@@ -53,7 +119,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Query may return more than expected, but not less
         for expectedProp in expectedProps:
             self.assertEquals(props.has_key(expectedProp.id), True)
-        
+
         #######################################################################
         # Verify that all expected ports are available
         for port in self.scd.get_componentfeatures().get_ports().get_uses():
@@ -61,63 +127,311 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.assertNotEqual(port_obj, None)
             self.assertEqual(port_obj._non_existent(), False)
             self.assertEqual(port_obj._is_a("IDL:CF/Port:1.0"),  True)
-            
+
         for port in self.scd.get_componentfeatures().get_ports().get_provides():
             port_obj = self.comp.getPort(str(port.get_providesname()))
             self.assertNotEqual(port_obj, None)
             self.assertEqual(port_obj._non_existent(), False)
             self.assertEqual(port_obj._is_a(port.get_repid()),  True)
-            
-        self.src = sb.DataSource()
-        self.sink = sb.DataSink()
-            
+
         #######################################################################
         # Make sure start and stop can be called without throwing exceptions
         self.comp.start()
-         
-        self.src.start()
-        self.sink.start()
-        
-        self.src.connect(self.comp)
-        self.comp.connect(self.sink, usesPortName='psd_dataFloat_out')
-        
-        inData = [float(0), float(0), float(0), float(1.0)] *(100000)
-        numLoop = 4
-        overlap = 4
-        frameLength = 5
-        numStride = len(inData)/numLoop
-        print "numStride = ", numStride
-
-        eos=False
-        for i in xrange(numLoop):
-            time.sleep(.01)           
-            if i==numLoop-1:
-                eos=True
-            self.src.push(inData[i*numStride:(i+1)*numStride], complexData=True, EOS=eos)
-        
-        time.sleep(1.5)
-        
-        
-        newOut = self.sink.getData()
-        print "got %s elements out" %len(newOut)
-        
-        print max(newOut)
-        print min(newOut)
-        
-        time.sleep(.5)
-        
         self.comp.stop()
 
         #######################################################################
-        # Simulate regular component shutdown
+        # Simulate regular resource shutdown
         self.comp.releaseObject()
         
-    # TODO Add additional tests here
-    #
-    # See:
-    #   ossie.utils.bulkio.bulkio_helpers,
-    #   ossie.utils.bluefile.bluefile_helpers
-    # for modules that will assist with testing components with BULKIO ports
+    def testRealData1(self):
+        print "-------- TESTING w/REAL DATA1 --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "RealData1"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096.
+    
+        F_7KHz = 7000.
+        A_7KHz = 5.0
+
+        t = arange(nsamples) / sample_rate
+        tmpData = A_7KHz * cos(2*pi*F_7KHz*t)
+
+        data = []
+        [data.append(float(x)) for x in tmpData]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=False)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, sample_rate, fftSize)
+        
+        #Convert Redhawk interleaved complex data to python complex for fftOut
+        fftOut = packCx(data)
+        
+        # Adjust length of data for accurate comparisons
+        pyFFT = pyFFT[0:fftSize/2]
+        fftOut = fftOut[0:fftSize/2]
+        psdOut = psdOut[0:fftSize/2]
+
+        # Uncomment function below to see output plots:
+        #plotFreqData(fftSize, sample_rate, pyFFT, fftOut, psdOut)
+        
+        # Find Max values and their corresponding frequency index
+        pyFFTMax = max(pyFFT)
+        fftOutMax = max(fftOut)
+        psdOutMax = max(psdOut)
+        pyMaxSquared = pyFFTMax**2
+        
+        pyFFTIndex = pyFFT.tolist().index(pyFFTMax)
+        fftIndex = fftOut.index(fftOutMax)
+        psdIndex = psdOut.index(psdOutMax)
+        
+        # Check that the component max values and index values are equal to python's
+        threshold = 0.000001
+        self.assertFalse(abs(pyFFTMax-fftOutMax) >= fftOutMax*threshold)
+        self.assertFalse(abs(pyMaxSquared-psdOutMax) >= psdOutMax*threshold)
+        self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
+        self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
+        
+        print "*PASSED\n"
+        
+    def testRealData2(self):
+        print "-------- TESTING w/REAL DATA2 --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "RealData2"
+        fftSize = 8192
+        self.comp.fftSize = fftSize
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 8192 samples of (3000Hz + 7000Hz) real signal at 32768 kHz
+        sample_rate = 32768.
+        nsamples = 8192.
+    
+        F_3KHz = 3000.
+        A_3KHz = 10.0
+    
+        F_7KHz = 7000.
+        A_7KHz = 5.0
+
+        t = arange(nsamples) / sample_rate
+        tmpData = A_7KHz * cos(2*pi*F_7KHz*t) + A_3KHz * cos(2*pi*F_3KHz*t)
+
+        data = []
+        [data.append(float(x)) for x in tmpData]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=False)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        pyFFT = abs(scipy.fft(tmpData, fftSize))
+        
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, sample_rate, fftSize)
+
+        #Convert Redhawk interleaved complex data to python complex for fftOut
+        fftOut = packCx(data)
+
+        # Adjust length of data for accurate comparisons
+        pyFFT = pyFFT[0:fftSize/2]
+        fftOut = fftOut[0:fftSize/2]
+        psdOut = psdOut[0:fftSize/2]
+
+        # Uncomment function below to see output plots:
+        #plotFreqData(fftSize, sample_rate, pyFFT, fftOut, psdOut)
+        
+        # Find Max values and their corresponding frequency index
+        pyFFTMax = max(pyFFT)
+        fftOutMax = max(fftOut)
+        psdOutMax = max(psdOut)
+        pyMaxSquared = pyFFTMax**2
+        
+        pyFFTIndex = pyFFT.tolist().index(pyFFTMax)
+        fftIndex = fftOut.index(fftOutMax)
+        psdIndex = psdOut.index(psdOutMax)
+        
+        # Check that the component max values and index values are equal to python's
+        threshold = 0.000001
+        self.assertFalse(abs(pyFFTMax-fftOutMax) >= fftOutMax*threshold)
+        self.assertFalse(abs(pyMaxSquared-psdOutMax) >= psdOutMax*threshold)
+        self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
+        self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
+
+        print "*PASSED\n"
+
+    def testComplexData1(self):
+        print "-------- TESTING w/COMPLEX DATA1 --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "ComplexData1"
+        fftSize = 8192
+        self.comp.fftSize = fftSize
+        
+        #------------------------------------------------
+        # Create test signal
+        #------------------------------------------------
+        # 8192 samples of (3000Hz + 7000Hz) complex signal at 32768 kHz
+        sample_rate = 32768.
+        nsamples = 8192.
+    
+        F_3KHz = 3000.
+        A_3KHz = 10.0
+    
+        F_7KHz = 7000.
+        A_7KHz = 5.0
+
+        t = arange(nsamples) / sample_rate
+        tmpData = A_7KHz * np.exp(1j*2*pi*F_7KHz*t) + A_3KHz * np.exp(1j*2*pi*F_3KHz*t)
+
+        #Convert signal from python complex to RedHawk interleaved complex
+        data = unpackCx(tmpData)
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=True)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        pyFFT = abs(scipy.fft(tmpData, fftSize))
+ 
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, sample_rate, fftSize)
+        
+        #Convert Redhawk interleaved complex data to python complex for fftOut
+        fftOut = packCx(data)
+        
+        # Adjust length of data for accurate comparisons
+        pyFFT = pyFFT[0:fftSize/2]
+        psdOut = psdOut[fftSize/2:fftSize]
+        fftOut = fftOut[fftSize/2:fftSize]
+        
+        # Uncomment function below to see output plots:
+        #plotFreqData(fftSize, sample_rate, pyFFT, fftOut, psdOut)
+        
+        # Normalize the data for accurate comparison with python fft
+        pyFFTMax = max(pyFFT)
+        fftOutMax = max(fftOut)
+        psdOutMax = max(psdOut)
+        pyMaxSquared = pyFFTMax**2
+        
+        pyFFTIndex = pyFFT.tolist().index(pyFFTMax)
+        fftIndex = fftOut.index(fftOutMax)
+        psdIndex = psdOut.index(psdOutMax)
+        
+        # Check that the component max values and index values are equal to python's
+        threshold = 0.000001
+        self.assertFalse(abs(pyFFTMax-fftOutMax) >= fftOutMax*threshold)
+        self.assertFalse(abs(pyMaxSquared-psdOutMax) >= psdOutMax*threshold)
+        self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
+        self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
+        
+        print "*PASSED\n"
+
+    def testComplexData2(self):
+        print "-------- TESTING w/COMPLEX DATA2 --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "ComplexData2"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        
+        #------------------------------------------------
+        # Create test signal
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096.
+    
+        F_7KHz = 7000.
+        A_7KHz = 5.0
+        
+        t = arange(nsamples) / sample_rate
+        tmpData = A_7KHz * np.exp(1j*2*pi*F_7KHz*t)
+
+        #Convert signal from python complex to RedHawk interleaved complex
+        data = unpackCx(tmpData)
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=True)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        pyFFT = abs(scipy.fft(tmpData, fftSize))
+ 
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, sample_rate, fftSize)
+        
+        #Convert Redhawk interleaved complex data to python complex for fftOut
+        fftOut = packCx(data)
+        
+        # Adjust length of data for accurate comparisons
+        pyFFT = pyFFT[0:fftSize/2]
+        psdOut = psdOut[fftSize/2:fftSize]
+        fftOut = fftOut[fftSize/2:fftSize]
+
+        # Uncomment function below to see output plots:
+        #plotFreqData(fftSize, sample_rate, pyFFT, fftOut, psdOut)
+        
+        # Normalize the data for accurate comparison with python fft
+        pyFFTMax = max(pyFFT)
+        fftOutMax = max(fftOut)
+        psdOutMax = max(psdOut)
+        pyMaxSquared = pyFFTMax**2
+        
+        pyFFTIndex = pyFFT.tolist().index(pyFFTMax)
+        fftIndex = fftOut.index(fftOutMax)
+        psdIndex = psdOut.index(psdOutMax)
+        
+        # Check that the component max values and index values are equal to python's
+        threshold = 0.000001
+        self.assertFalse(abs(pyFFTMax-fftOutMax) >= fftOutMax*threshold)
+        self.assertFalse(abs(pyMaxSquared-psdOutMax) >= psdOutMax*threshold)
+        self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
+        self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
+        
+        print "*PASSED\n"
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../psd.spd.xml") # By default tests all implementations
