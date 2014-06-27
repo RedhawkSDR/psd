@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           psd
 Version:        1.0.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components
