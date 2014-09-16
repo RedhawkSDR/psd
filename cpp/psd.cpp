@@ -425,7 +425,8 @@ int psd_i::serviceFunction()
 			tmp->SRI.xstart=0;
 		else
 			tmp->SRI.xstart=-((params.fftSz/2-1)*tmp->SRI.xdelta);
-		tmp->SRI.yunits = BULKIO::UNITS_FREQUENCY;
+		tmp->SRI.yunits = BULKIO::UNITS_TIME;
+		tmp->SRI.xunits = BULKIO::UNITS_FREQUENCY;
 		tmp->SRI.mode = 1; //data is always complex out of the fft
 		fft_dataFloat_out->pushSRI(tmp->SRI);
 		if (numAvg > 2)
