@@ -127,6 +127,12 @@ void PsdProcessor::updateNumAvg(size_t avg)
 	vecMean_.setAvgNum(avg);
 	params_.updateSRI=true;
 }
+
+void PsdProcessor::forceSRIUpdate()
+{
+	params_.updateSRI=true;
+}
+
 void PsdProcessor::flush()
 {
 	//delete the pointers - then on next data call when we start processing again
@@ -233,6 +239,7 @@ psd_i::psd_i(const char *uuid, const char *label) :
 	addPropertyChangeListener("fftSize", this, &psd_i::fftSizeChanged);
 	addPropertyChangeListener("overlap", this, &psd_i::overlapChanged);
 	addPropertyChangeListener("numAvg", this, &psd_i::numAvgChanged);
+	addPropertyChangeListener("rfFreqUnits", this, &psd_i::rfFreqUnitsChanged);
 
 	psd_dataFloat_out->setNewConnectListener(&listener);
 	fft_dataFloat_out->setNewConnectListener(&listener);
@@ -414,17 +421,43 @@ int psd_i::serviceFunction()
 
 	// NOTE: You must make at least one valid pushSRI call
 	if (tmp->sriChanged || updateSRI) {
+		bool validRF = false;
 		double xdelta = tmp->SRI.xdelta;
+		tmp->SRI.xdelta = 1.0/(xdelta*params.fftSz);
+
+		double ifStart = 0;
+		if (tmp->SRI.mode==1) //complex Data
+			ifStart = -((params.fftSz/2-1)*tmp->SRI.xdelta);
+
+		//adjust the xstart for RF units if required
+		if (rfFreqUnits)
+		{
+			long rfCentre = getKeywordByID<CORBA::Long>(tmp->SRI, "CHAN_RF", validRF);
+			if (!validRF)
+			{
+				rfCentre = getKeywordByID<CORBA::Long>(tmp->SRI, "COL_RF", validRF);
+			}
+			if (validRF)
+			{
+				double ifCentre=0;
+				if (tmp->SRI.mode==0) //real data is at fs/4.0
+					ifCentre = 1.0/xdelta/4.0;
+				double deltaF = rfCentre-ifCentre; //Translation between rf & if
+				tmp->SRI.xstart = ifStart+deltaF;  //This the the start bin at RF
+			}
+			else
+			{
+				LOG_WARN(psd_i, "rf Frequency units requested but no rf unit keyword present");
+			}
+		}
+		if (!validRF)
+			tmp->SRI.xstart = ifStart;
+
 		if (tmp->SRI.mode==0)
 			tmp->SRI.subsize = params.fftSz/2+1;
 		else
 			tmp->SRI.subsize =params.fftSz;
 		tmp->SRI.ydelta = xdelta*params.strideSize;
-		tmp->SRI.xdelta = 1.0/(xdelta*params.fftSz);
-		if (tmp->SRI.mode==0)
-			tmp->SRI.xstart=0;
-		else
-			tmp->SRI.xstart=-((params.fftSz/2-1)*tmp->SRI.xdelta);
 		tmp->SRI.yunits = BULKIO::UNITS_TIME;
 		tmp->SRI.xunits = BULKIO::UNITS_FREQUENCY;
 		tmp->SRI.mode = 1; //data is always complex out of the fft
@@ -482,3 +515,11 @@ void psd_i::callBackFunc( const char* connectionId)
 	doFFT = (fft_dataFloat_out->state()!=BULKIO::IDLE);
 }
 
+void psd_i::rfFreqUnitsChanged(const bool *oldValue, const bool *newValue)
+{
+	if (*oldValue != *newValue) {
+		boost::mutex::scoped_lock lock(psdLock_);
+		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
+			i->second->forceSRIUpdate();
+	}
+}

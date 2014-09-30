@@ -51,6 +51,7 @@ public:
 	void updateFftSize(size_t fftSize);
 	void updateOverlap(int overlap);
 	void updateNumAvg(size_t avg);
+	void forceSRIUpdate();
 	void flush();
 	ParamStruct process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoefficient);
 
@@ -94,6 +95,7 @@ class psd_i : public psd_base
 		void fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue);
 		void numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue);
 		void overlapChanged(const int *oldValue, const int *newValue);
+		void rfFreqUnitsChanged(const bool *oldValue, const bool *newValue);
 
 		typedef std::map<std::string, PsdProcessor*> map_type;
 		map_type stateMap;
@@ -108,6 +110,42 @@ class psd_i : public psd_base
 
         bulkio::MemberConnectionEventListener<psd_i> listener;
         void callBackFunc( const char* connectionId);
+
+    	// Function to get an SRI keyword value
+    	template <typename TYPE> TYPE getKeywordByID(BULKIO::StreamSRI &sri, CORBA::String_member id, bool &valid) {
+    		/****************************************************************************************************
+    		 * Description: Retrieve the value assigned to a given id.
+    		 * sri   - StreamSRI object to process
+    		 * id    - Keyword identifier string
+    		 * valid - Flag to indicate whether the returned value is valid (false if the keyword doesn't exist)
+    		 ****************************************************************************************************/
+    		valid = false;
+    		TYPE value;
+
+    		for(unsigned int i=0; i < sri.keywords.length(); i++) {
+    			if(!strcmp(sri.keywords[i].id, id)) {
+    				valid = true;
+    				if (sri.keywords[i].value >>= value)
+    					break;
+    				//try with double and float to extract it and see if we can make it happen if the
+    				//format of this keyword is different than we expect
+    				double d;
+    				if (sri.keywords[i].value >>= d)
+    				{
+    					value=static_cast<TYPE>(d);
+    					break;
+    				}
+    				float f;
+    				if (sri.keywords[i].value >>= f)
+    				{
+    					value=static_cast<TYPE>(f);
+    					break;
+    				}
+    				valid = false;
+    			}
+    		}
+    		return value;
+    	}
 };
 
 #endif

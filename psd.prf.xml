@@ -45,4 +45,13 @@ Typical values for this property are either 10 or 20.</description>
     <kind kindtype="configure"/>
     <action type="external"/>
   </simple>
+  <simple id="rfFreqUnits" mode="readwrite" type="boolean">
+    <description>If rfFreqUnits is set to be true - the output SRI is configured so that the units have the centre of the band at RF.  
+
+For this to work properly - COL_RF or CHAN_RF must be set as valid keywords.
+</description>
+    <value>False</value>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
 </properties>

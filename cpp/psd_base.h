@@ -44,6 +44,7 @@ class psd_base : public Resource_impl, protected ThreadedComponent
         CORBA::Long overlap;
         CORBA::ULong numAvg;
         float logCoefficient;
+        bool rfFreqUnits;
 
         // Ports
         bulkio::InFloatPort *dataFloat_in;

@@ -22,11 +22,16 @@ import os
 from omniORB import any
 import time
 from ossie.utils import sb
-from pylab import figure, plot, grid, show, title
+try:
+    from pylab import figure, plot, grid, show, title
+except ImportError:
+    print "no pylab for you"
+    figure=None
 from numpy import cos, sin, arange, pi, correlate, linspace
 import scipy.fftpack
 import numpy as np
 import types
+import random
 
 def packCx(data):
     real=None
@@ -47,22 +52,23 @@ def unpackCx(data):
     return out
 
 def plotFreqData(fftSize, sampleRate, pyFFT, fftOut, psdOut):
-    freqs = linspace(0,1,fftSize/2) * (sampleRate/2)
-        
-    figure(1)
-    title("REAL Py fft")
-    plot(freqs, pyFFT)
-       
-    figure(2)
-    title("REAL real fft")
-    plot(freqs, fftOut)
-       
-    figure(3)
-    title("REAL comp psd")
-    plot(freqs, psdOut)
-        
-    grid(True)
-    show(True)
+    if figure:
+        freqs = linspace(0,1,fftSize/2) * (sampleRate/2)
+            
+        figure(1)
+        title("REAL Py fft")
+        plot(freqs, pyFFT)
+           
+        figure(2)
+        title("REAL real fft")
+        plot(freqs, fftOut)
+           
+        figure(3)
+        title("REAL comp psd")
+        plot(freqs, psdOut)
+            
+        grid(True)
+        show(True)
     
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in psd"""
@@ -85,14 +91,23 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.releaseObject()
         ossie.utils.testing.ScaComponentTestCase.tearDown(self)
         
-    def validateSRIPushing(self, streamID, outputRate=1.0, fftSize=1.0):
-        xdelta = outputRate/fftSize
+    def validateSRIPushing(self, streamID, inputCmplx, inputRate=1.0, fftSize=1.0, rfVal = None):
+        xdelta = inputRate/fftSize
         
-        self.assertEqual(self.fftsink.sri().streamID, streamID)
-        self.assertEqual(self.psdsink.sri().streamID, streamID)
-        
-        self.assertAlmostEqual(self.fftsink.sri().xdelta, xdelta)
-        self.assertAlmostEqual(self.psdsink.sri().xdelta, xdelta)
+        for sri in (self.fftsink.sri(), self.psdsink.sri()):
+            self.assertEqual(sri.streamID, streamID)
+            self.assertAlmostEqual(sri.xdelta, xdelta)
+            if inputCmplx==1:
+                ifStart = -xdelta*(fftSize/2-1)
+            else:
+                ifStart=0
+            if rfVal !=None and self.comp.rfFreqUnits:
+                if inputCmplx:
+                    self.assertAlmostEqual(sri.xstart, ifStart+rfVal)
+                else:
+                    self.assertAlmostEqual(sri.xstart, rfVal-inputRate/4.0)
+            else:
+                self.assertAlmostEqual(sri.xstart, ifStart)
         
     def testScaBasicBehavior(self):
         #######################################################################
@@ -173,7 +188,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Test Component Functionality.
         #------------------------------------------------
         # Push Data
-        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=False)
+        cxData = False
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData)
         time.sleep(.5)
 
         # Get Output Data
@@ -182,7 +198,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, sample_rate, fftSize)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
         
         #Convert Redhawk interleaved complex data to python complex for fftOut
         fftOut = packCx(data)
@@ -247,7 +263,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Test Component Functionality.
         #------------------------------------------------
         # Push Data
-        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=False)
+        cxData=False
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData)
         time.sleep(.5)
 
         # Get Output Data
@@ -256,7 +273,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         pyFFT = abs(scipy.fft(tmpData, fftSize))
         
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, sample_rate, fftSize)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
 
         #Convert Redhawk interleaved complex data to python complex for fftOut
         fftOut = packCx(data)
@@ -321,7 +338,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Test Component Functionality.
         #------------------------------------------------
         # Push Data
-        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=True)
+        cxData=True
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData)
         time.sleep(.5)
 
         # Get Output Data
@@ -330,7 +348,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         pyFFT = abs(scipy.fft(tmpData, fftSize))
  
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, sample_rate, fftSize)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
         
         #Convert Redhawk interleaved complex data to python complex for fftOut
         fftOut = packCx(data)
@@ -392,7 +410,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Test Component Functionality.
         #------------------------------------------------
         # Push Data
-        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=True)
+        cxData=True
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData)
         time.sleep(.5)
 
         # Get Output Data
@@ -401,7 +420,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         pyFFT = abs(scipy.fft(tmpData, fftSize))
  
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, sample_rate, fftSize)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
         
         #Convert Redhawk interleaved complex data to python complex for fftOut
         fftOut = packCx(data)
@@ -432,6 +451,139 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
         
         print "*PASSED\n"
+
+    def testColRfReal(self):
+        print "-------- TESTING w/REAL ColRfReal --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "testColRfReal"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  True
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = False
+        colRfVal = 100e6
+        keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+
+
+        print "*PASSED\n"
+
+    def testColRfCx(self):
+        print "-------- TESTING w/REAL ColRfReal --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "testColRfCx"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  True
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(2*nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = True
+        colRfVal = 100e6
+        keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+
+
+        print "*PASSED\n"
+        
+    def testColRfCxToggle(self):
+        print "-------- TESTING w/Toggle rfFreqUnits --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "testColRfCx"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  False
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(2*nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = True
+        colRfVal = 100e6
+        keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+
+        self.comp.rfFreqUnits =  True
+        time.sleep(.5)
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        
+        print "*PASSED\n"
+    
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../psd.spd.xml") # By default tests all implementations

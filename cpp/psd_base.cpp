@@ -120,6 +120,15 @@ void psd_base::loadProperties()
                 "external",
                 "configure");
 
+    addProperty(rfFreqUnits,
+                false,
+                "rfFreqUnits",
+                "",
+                "readwrite",
+                "",
+                "external",
+                "configure");
+
 }
 
 
