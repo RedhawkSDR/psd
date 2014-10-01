@@ -124,6 +124,7 @@ void PsdProcessor::updateOverlap(int overlap)
 }
 void PsdProcessor::updateNumAvg(size_t avg)
 {
+	params_.numAverage = avg;
 	vecMean_.setAvgNum(avg);
 	params_.updateSRI=true;
 }
