@@ -21,9 +21,9 @@ if [ "$1" = "rpm" ]; then
     if [ -e psd.spec ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
-        cp -r ${mydir} ${tmpdir}/psd-1.0.1
-        tar czf ${tmpdir}/psd-1.0.1.tar.gz --exclude=".svn" -C ${tmpdir} psd-1.0.1
-        rpmbuild -ta ${tmpdir}/psd-1.0.1.tar.gz
+        cp -r ${mydir} ${tmpdir}/psd-1.1.0
+        tar czf ${tmpdir}/psd-1.1.0.tar.gz --exclude=".svn" -C ${tmpdir} psd-1.1.0
+        rpmbuild -ta ${tmpdir}/psd-1.1.0.tar.gz
         rm -rf $tmpdir
     else
         echo "Missing RPM spec file in" `pwd`
