@@ -28,7 +28,7 @@ Prefix:         %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           psd
-Version:        1.1.1
+Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Component %{name}
 
@@ -37,18 +37,18 @@ License:        GPLv3+
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  redhawk-devel >= 1.10
-Requires:       redhawk >= 1.10
+BuildRequires:  redhawk-devel >= 2.0
+Requires:       redhawk >= 2.0
 
 # Interface requirements
-BuildRequires:  bulkioInterfaces
-Requires:       bulkioInterfaces
+BuildRequires:  bulkioInterfaces >= 2.0
+Requires:       bulkioInterfaces >= 2.0
 
 # Softpkg requirements
-BuildRequires:  dsp-devel >= 1.0.0
-Requires:       dsp >= 1.0.0
-BuildRequires:  fftlib-devel >= 1.0.0
-Requires:       fftlib >= 1.0.0
+BuildRequires:  dsp-devel >= 1.2.0
+Requires:       dsp >= 1.2.0
+BuildRequires:  fftlib-devel >= 1.1.0
+Requires:       fftlib >= 1.1.0
 
 %description
 Component %{name}
@@ -85,9 +85,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,redhawk,redhawk,-)
-%dir %{_prefix}/dom/components/%{name}
-%{_prefix}/dom/components/%{name}/psd.scd.xml
-%{_prefix}/dom/components/%{name}/psd.prf.xml
-%{_prefix}/dom/components/%{name}/psd.spd.xml
-%{_prefix}/dom/components/%{name}/cpp
+%dir %{_prefix}/dom/components/psd
+%{_prefix}/dom/components/psd/psd.scd.xml
+%{_prefix}/dom/components/psd/psd.prf.xml
+%{_prefix}/dom/components/psd/psd.spd.xml
+%{_prefix}/dom/components/psd/cpp
 

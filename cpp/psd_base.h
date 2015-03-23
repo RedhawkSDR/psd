@@ -15,16 +15,16 @@
  * You should have received a copy of the GNU General Public License along with this
  * program.  If not, see http://www.gnu.org/licenses/.
  */
-#ifndef PSD_IMPL_BASE_H
-#define PSD_IMPL_BASE_H
+#ifndef PSD_BASE_IMPL_BASE_H
+#define PSD_BASE_IMPL_BASE_H
 
 #include <boost/thread.hpp>
-#include <ossie/Resource_impl.h>
+#include <ossie/Component.h>
 #include <ossie/ThreadedComponent.h>
 
 #include <bulkio/bulkio.h>
 
-class psd_base : public Resource_impl, protected ThreadedComponent
+class psd_base : public Component, protected ThreadedComponent
 {
     public:
         psd_base(const char *uuid, const char *label);
@@ -53,4 +53,4 @@ class psd_base : public Resource_impl, protected ThreadedComponent
 
     private:
 };
-#endif // PSD_IMPL_BASE_H
+#endif // PSD_BASE_IMPL_BASE_H
