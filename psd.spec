@@ -28,7 +28,7 @@ Prefix:         %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           psd
-Version:        1.1.0
+Version:        1.1.1
 Release:        1%{?dist}
 Summary:        Component %{name}
 
