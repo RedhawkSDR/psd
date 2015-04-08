@@ -81,6 +81,7 @@ PsdProcessor::PsdProcessor(std::vector<float>& psdOutVec,
 	params_.numAverage=false;
 	params_.strideSize=fftSize-overlap;
 	params_.numAverage = numAvg;
+	params_.updateSRI = false;
 }
 PsdProcessor::~PsdProcessor()
 {
