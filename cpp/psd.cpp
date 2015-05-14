@@ -27,116 +27,156 @@
 
 #include "psd.h"
 
+PREPARE_LOGGING(PsdProcessor)
 PREPARE_LOGGING(psd_i)
 
-//a few quick little helper methods here
-void copyVec(std::vector<float>::iterator start, std::vector<float>::iterator stop, RealFFTWVector &out)
-{
-	out.assign(start,stop);
+/****************************************************************
+ ****************************************************************
+ **                                                            **
+ **                     Helper Methods                         **
+ **                                                            **
+ ****************************************************************
+ ****************************************************************/
+
+void copyVec(const bulkio::FloatDataBlock &block, RealFFTWVector &out){
+	out.resize(block.size());
+	memcpy(&out[0], block.data(), out.size()*sizeof(float));
 }
 
-void copyVec(std::vector<float>::iterator start, std::vector<float>::iterator stop, ComplexFFTWVector &out)
-{
-	size_t newOutSize = (stop-start)/2;
-	out.resize(newOutSize);
-	memcpy(&out[0],&(*start), out.size()*sizeof(std::complex<float>));
+void copyVec(const bulkio::FloatDataBlock &block, ComplexFFTWVector &out){
+	out.resize(block.cxsize());
+	memcpy(&out[0], block.data(), out.size()*sizeof(std::complex<float>));
 }
 
 template<typename T, typename U>
-void appendVec(const std::vector<float, T>&in, std::vector<float, U> &out)
-{
-	copy(in.begin(),in.end(), back_inserter(out));
+void copyVec(const std::vector<float, T>&in, std::vector<float, U> &out){
+	out.resize(in.size());
+	memcpy(&out[0], &in[0], out.size()*sizeof(float));
 }
 
 template<typename T, typename U>
-void appendVec(const std::vector<std::complex<float> , T>&in, std::vector<std::complex<float>, U> &out)
-{
-	copy(in.begin(),in.end(), back_inserter(out));
+void copyVec(const std::vector<std::complex<float>, T>&in, std::vector<float, U> &out){
+	out.resize(2*in.size());
+	memcpy(&out[0],&in[0], out.size()*sizeof(float));
 }
 
-
-template<typename T, typename U>
-void appendVec(const std::vector<std::complex<float>, T>&in, std::vector<float, U> &out)
-{
-	size_t oldSize = out.size();
-	size_t inSize = 2*in.size();
-	out.resize(oldSize+inSize);
-	memcpy(&out[oldSize],&in[0],inSize*sizeof(float));
-}
-
-PsdProcessor::PsdProcessor(std::vector<float>& psdOutVec,
-					std::vector<float>& fftOutVec,
+/****************************************************************
+ ****************************************************************
+ **                                                            **
+ **                   PsdProcessor class                       **
+ **                                                            **
+ ****************************************************************
+ ****************************************************************/
+PsdProcessor::PsdProcessor(bulkio::InFloatStream inStream,
+					bulkio::OutFloatStream fftStream,
+					bulkio::OutFloatStream psdStream,
 					size_t fftSize,
 					int overlap,
-					size_t numAvg) :
-		psdOutVec_(psdOutVec),
-		fftOutVec_(fftOutVec),
-		frameBuffer_(fftSize,overlap),
+					size_t numAvg,
+					float logCoeff,
+					bool doFFT,
+					bool doPSD,
+					bool rfFreqUnits,
+					float delay) :
+    	ThreadedComponent(),
+		in(inStream),
+		outFFT(fftStream),
+		outPSD(psdStream),
 		realPsd_(NULL),
 		complexPsd_(NULL),
 		vecMean_(numAvg, psdOut_, psdAverage_),
-		overlap_(overlap)
-{
-	params_.fftSz = fftSize;
-	params_.numAverage=false;
-	params_.strideSize=fftSize-overlap;
-	params_.numAverage = numAvg;
-	params_.updateSRI = false;
+		paramLock(new boost::mutex()){
+	LOG_DEBUG(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
+	params.fftSz = fftSize;
+	params.fftSzChanged = true;
+	params.strideSize=fftSize-overlap;
+	params.numAverage = numAvg;
+	params.numAverageChanged = true;
+	params.overlap = overlap;
+	params.doFFT = doFFT;
+	params.doPSD = doPSD;
+	params.rfFreqUnits = rfFreqUnits;
+	params.logCoeff = logCoeff;
+	params.updateSRI = true; // force initial SRI push
+	setThreadDelay(delay);
+    ThreadedComponent::startThread();
 }
-PsdProcessor::~PsdProcessor()
-{
+PsdProcessor::~PsdProcessor(){
+	LOG_DEBUG(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
+	if(!!outFFT){
+		outFFT.close();
+	}
+	if(!!outPSD){
+		outPSD.close();
+	}
 	flush();
 }
 
-void PsdProcessor::updateFftSize(size_t fftSize)
-{
-	if (realPsd_)
-	{
-		frameBuffer_.setFrameSize(fftSize);
-		realIn_.resize(fftSize);
-		psdOut_.resize(fftSize/2+1);
-		fftOut_.resize(fftSize/2+1);
-		realPsd_->setLength(fftSize);
-	}
-	else if (complexPsd_)
-	{
-		frameBuffer_.setFrameSize(2*fftSize);
-		complexIn_.resize(fftSize);
-		psdOut_.resize(fftSize);
-		fftOut_.resize(fftSize);
-		complexPsd_->setLength(fftSize);
-	}
-	params_.fftSz=fftSize;
-	params_.strideSize=fftSize-overlap_;
-	params_.updateSRI=true;
+void PsdProcessor::updateFftSize(size_t fftSize){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.fftSz=fftSize;
+	params.strideSize=fftSize-params.overlap;
+	params.fftSzChanged = true;
+	params.updateSRI=true;
 }
-void PsdProcessor::updateOverlap(int overlap)
-{
-	long floatOverlap = overlap;
-	if (complexPsd_)
-	{
-		floatOverlap=2*overlap;
-	}
-	frameBuffer_.setOverlap(floatOverlap);
-	params_.updateSRI=true;
-	params_.strideSize=params_.fftSz-overlap;
-	overlap_ = overlap;
+void PsdProcessor::updateOverlap(int overlap){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.overlap = overlap;
+	params.strideSize=params.fftSz-overlap;
+	params.updateSRI=true;
 
 }
-void PsdProcessor::updateNumAvg(size_t avg)
-{
-	params_.numAverage = avg;
-	vecMean_.setAvgNum(avg);
-	params_.updateSRI=true;
+void PsdProcessor::updateNumAvg(size_t avg){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.numAverage = avg;
+	params.numAverageChanged = true;
+	params.updateSRI=true;
 }
 
-void PsdProcessor::forceSRIUpdate()
-{
-	params_.updateSRI=true;
+void PsdProcessor::forceSRIUpdate(){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.updateSRI=true;
 }
 
-void PsdProcessor::flush()
-{
+void PsdProcessor::updateActions(bool psd, bool fft){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" psd:"<<psd<<" fft:"<<fft);
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.doPSD = psd;
+	params.doFFT = fft;
+}
+
+void PsdProcessor::updateRfFreqUnits(bool enable){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" new value is "<<enable);
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.rfFreqUnits = enable;
+	params.updateSRI=true;
+}
+
+void PsdProcessor::updateLogCoefficient(float logCoeff){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__<<" new value is "<<logCoeff);
+	boost::mutex::scoped_lock lock(*paramLock);
+	params.logCoeff = logCoeff;
+}
+
+bool PsdProcessor::finished(){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
+	return !serviceThread->threadRunning();
+}
+
+void PsdProcessor::stop() throw (CORBA::SystemException, CF::Resource::StopError){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
+    if (!ThreadedComponent::stopThread()) {
+        throw CF::Resource::StopError(CF::CF_NOTSET, "PsdProcessor thread did not die");
+    }
+}
+
+void PsdProcessor::flush(){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
+	boost::mutex::scoped_lock lock(*paramLock);
 	//delete the pointers - then on next data call when we start processing again
 	//the rest of the processing state is flushed
 	if (realPsd_!=NULL)
@@ -148,89 +188,231 @@ void PsdProcessor::flush()
 	complexPsd_ = NULL;
 }
 
-PsdProcessor::ParamStruct PsdProcessor::process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoefficient)
-{
-	if (cmplx)
+int PsdProcessor::serviceFunction(){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
+
+	// update cached copy of params
 	{
-		if (realPsd_)
-		{
+		boost::mutex::scoped_lock lock(*paramLock);
+
+		// update cache
+		bool tmp = params_cache.updateSRI;
+		params_cache = params;
+		params_cache.updateSRI = params.updateSRI || tmp; // preserve flag if not addressed yet
+		// Note: we do not need to preserve the other change flags b/c they are always addressed
+
+		// reset global
+		params.fftSzChanged = false;
+		params.numAverageChanged = false;
+		params.updateSRI = false; // always reset to false once addressed
+	}
+
+	// update all data structures before processing, if needed
+	if(params_cache.fftSzChanged){
+		LOG_TRACE(PsdProcessor,"serviceFunction - updating data structures due to new fft size");
+		params_cache.fftSzChanged = false;
+		if (realPsd_){
+			realIn_.resize(params_cache.fftSz);
+			psdOut_.resize(params_cache.fftSz/2+1);
+			fftOut_.resize(params_cache.fftSz/2+1);
+			realPsd_->setLength(params_cache.fftSz);
+		} else if (complexPsd_) {
+			complexIn_.resize(params_cache.fftSz);
+			psdOut_.resize(params_cache.fftSz);
+			fftOut_.resize(params_cache.fftSz);
+			complexPsd_->setLength(params_cache.fftSz);
+		}
+	}
+
+	if(params_cache.numAverageChanged){
+		LOG_TRACE(PsdProcessor,"serviceFunction - updating data structures due to new num average");
+		params_cache.numAverageChanged = false;
+		vecMean_.setAvgNum(params_cache.numAverage);
+	}
+
+	// To avoid blocking if data is not available...
+	if(!in.ready()){
+		LOG_TRACE(PsdProcessor,"process, input stream not ready, returning NOOP");
+		return NOOP;
+	}
+
+	// get a block of data -- this is a blocking call
+	bulkio::FloatDataBlock block = in.read(params_cache.fftSz,params_cache.strideSize);
+
+	if (!block) { // TODO: considering the readiness check, when will this occur?
+		LOG_INFO(PsdProcessor,"process, got !block");
+		// TODO: what does it mean to !block? eos? ran out of data without eos?
+		if( in.eos()){
+			LOG_INFO(PsdProcessor,"process, in !block, got eos");
+			return FINISH;
+		} else {
+			LOG_INFO(PsdProcessor,"process, in !block, no eos");
+			return NOOP;
+		}
+	}
+
+	if (block.inputQueueFlushed()) {
+		LOG_WARN(PsdProcessor, "Input queue flushed.  Flushing internal buffers.");
+		//flush all our processor states if the queue flushed
+		flush();
+	}
+
+	// do work and push out data
+	if (block.complex()) {
+		LOG_TRACE(PsdProcessor,"process, calculating complex average");
+
+		// setup Complex
+		if (realPsd_){
 			delete realPsd_;
 			realPsd_=NULL;
 		}
-		if (complexPsd_==NULL)
-		{
-			complexPsd_ = new ComplexPsd(complexIn_, psdOut_, fftOut_, params_.fftSz,true);
-			frameBuffer_.flush();
-			frameBuffer_.setFrameSize(params_.fftSz*2);
-			frameBuffer_.setOverlap(2*overlap_);
+		if (complexPsd_==NULL){
+			complexPsd_ = new ComplexPsd(complexIn_, psdOut_, fftOut_, params_cache.fftSz,true);
 			vecMean_.clear();
 		}
 
-	} else
-	{
-		if (complexPsd_)
-		{
+		// get Complex input and run Complex PSD
+		copyVec(block,complexIn_);
+		complexPsd_->run();
+
+	} else {
+		LOG_TRACE(PsdProcessor,"process, calculating scalar average");
+
+		// setup Scalar
+		if (complexPsd_){
 			delete complexPsd_;
 			complexPsd_=NULL;
 		}
-		if (realPsd_==NULL)
-		{
-			realPsd_ = new RealPsd(realIn_, psdOut_, fftOut_, params_.fftSz,true);
-			frameBuffer_.flush();
-			frameBuffer_.setFrameSize(params_.fftSz);
-			frameBuffer_.setOverlap(overlap_);
+		if (realPsd_==NULL){
+			realPsd_ = new RealPsd(realIn_, psdOut_, fftOut_, params_cache.fftSz,true);
 			vecMean_.clear();
 		}
+
+		// get Scalar input and run Scalar PSD
+		copyVec(block,realIn_);
+		realPsd_->run();
 	}
 
-	frameBuffer_.newData(input,framedData_);
-	if (complexPsd_)
-	{
-		serviceLoop(complexPsd_, complexIn_,doPSD, doFFT, logCoefficient);
+	// TODO - can we do this without a copy?
+	if (params_cache.doPSD){
+		if (params_cache.numAverage > 1){
+			if (vecMean_.run()){
+				copyVec(psdAverage_,psdOutVec);
+			} else {
+				psdOutVec.clear();
+			}
+		} else {
+			copyVec(psdOut_,psdOutVec);
+		}
+		//take the log of the output if necessary
+		if (params_cache.logCoeff > 0){
+			for (std::vector<float>::iterator i=psdOutVec.begin(); i!=psdOutVec.end(); i++)
+				*i=params_cache.logCoeff*log10(*i);
+		}
 	}
-	else if (realPsd_)
-	{
-		serviceLoop(realPsd_, realIn_,doPSD, doFFT, logCoefficient);
+
+	// TODO - can we do this without a copy?
+	if (params_cache.doFFT){
+		copyVec(fftOut_,fftOutVec);
 	}
+
+	// Update SRI
+	if (params_cache.updateSRI || block.sriChanged()) {
+		params_cache.updateSRI = false; // always reset to false once addressed
+		LOG_TRACE(PsdProcessor,"process, need to update SRI");
+		// TODO - the debug below is unnecessary, comment out or remove
+		if (block.sriChangeFlags() & bulkio::sri::XDELTA) {
+			LOG_TRACE(PsdProcessor,"process, xdelta changed");
+		} else if (block.sriChangeFlags() & bulkio::sri::MODE) {
+			LOG_TRACE(PsdProcessor,"process, mode changed");
+		}
+		updateSRI(block);
+	}
+
+    //output data
+	// NOTE - getTimeStamps() returns sorted list.
+	//        First is guaranteed to be offset 0, and may or may not be synthetic.
+	//        If any others, they will be non-synthetic.
+	// TODO - should adjust Timestamp for extra sample delay from elements in last loop
+	if (params_cache.doPSD && !psdOutVec.empty()){
+		LOG_TRACE(PsdProcessor,"process, writing out psd");
+		outPSD.write(psdOutVec,block.getTimestamps().front().time);
+	}
+	if (params_cache.doFFT && !fftOutVec.empty()){
+		// TODO - FFT data is complex, SRI indicates complex, but here we're not pushing complex data. is this OK?
+		LOG_TRACE(PsdProcessor,"process, writing out fft");
+		outFFT.write(fftOutVec,block.getTimestamps().front().time);
+	}
+
+	return NORMAL;
+}
+
+void PsdProcessor::updateSRI(const bulkio::FloatDataBlock &block){
+	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
+	BULKIO::StreamSRI outputSRI;
+	bool validRF = false;
+	double xdelta_in = block.xdelta();
+	outputSRI.xdelta = 1.0/(xdelta_in*params_cache.fftSz);
+	LOG_TRACE(PsdProcessor,"updateSRI - block.xdelta()="<<block.xdelta());
+	LOG_TRACE(PsdProcessor,"updateSRI - outputSRI.xdelta="<<outputSRI.xdelta);
+
+	double ifStart = 0;
+	if (block.complex()) //complex Data
+		ifStart = -((params_cache.fftSz/2-1)*outputSRI.xdelta);
+	LOG_TRACE(PsdProcessor,"updateSRI - ifStart="<<ifStart);
+
+	//adjust the xstart for RF units if required
+	if (params_cache.rfFreqUnits){
+		LOG_TRACE(PsdProcessor,"updateSRI - rfFreqUnits=true");
+		long rfCentre = getKeywordByID<CORBA::Long>(block.sri(), "CHAN_RF", validRF);
+		if (!validRF){
+			LOG_TRACE(PsdProcessor,"updateSRI - rfFreqUnits=true, no CHAN_RF");
+			rfCentre = getKeywordByID<CORBA::Long>(block.sri(), "COL_RF", validRF);
+		}
+		if (validRF){
+			double ifCentre=0;
+			if (!block.complex()) //real data is at fs/4.0
+				ifCentre = 1.0/xdelta_in/4.0;
+			double deltaF = rfCentre-ifCentre; //Translation between rf & if
+			outputSRI.xstart = ifStart+deltaF;  //This the the start bin at RF
+		} else {
+			LOG_WARN(PsdProcessor, "rf Frequency units requested but no rf unit keyword present");
+		}
+	} else {
+		LOG_TRACE(PsdProcessor,"updateSRI - rfFreqUnits=false");
+	}
+	if (!validRF)
+		outputSRI.xstart = ifStart;
+	LOG_TRACE(PsdProcessor,"updateSRI - outputSRI.xstart="<<outputSRI.xstart);
+
+	if (!block.complex())
+		outputSRI.subsize = params_cache.fftSz/2+1;
 	else
-	{
-		std::cerr<<"this shouldn't happen - no real or complex psd created"<<std::endl;
-	}
-	return params_;
+		outputSRI.subsize =params_cache.fftSz;
+	outputSRI.ydelta = xdelta_in*params_cache.strideSize;
+	outputSRI.yunits = BULKIO::UNITS_TIME;
+	outputSRI.xunits = BULKIO::UNITS_FREQUENCY;
+	outputSRI.mode = 1; //data is always complex out of the fft
+
+	// set/update the sri for the output FFT stream
+	outFFT.sri(outputSRI);
+
+	if (params_cache.numAverage > 2)
+		outputSRI.ydelta*=params_cache.numAverage;
+
+	// set/update the sri for the output PSD stream
+	outputSRI.mode = 0; //data is always real out of the psd
+	outPSD.sri(outputSRI);
+
 }
 
-template <typename TimeType>
-void PsdProcessor::serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoefficient)
-{
-	//make sure ther is input and we have an output hooked up
-	if (!framedData_.empty())
-	{
-		psdOutVec_.clear();
-		fftOutVec_.clear();
-
-		for (unsigned int i=0; i!=framedData_.size(); i++)
-		{
-			copyVec(framedData_[i].begin,framedData_[i].end,psdInput);
-			psd->run();
-				if (params_.numAverage > 1)
-				{
-					if (vecMean_.run() && doPSD)
-						appendVec(psdAverage_,psdOutVec_);
-				}
-				else if(doPSD)
-					appendVec(psdOut_,psdOutVec_);
-			if (doFFT)
-				appendVec(fftOut_,fftOutVec_);
-		}
-		if (!psdOutVec_.empty() && logCoefficient >0)
-		{
-			//take the log of the output if necessary
-			for (std::vector<float>::iterator i=psdOutVec_.begin(); i!=psdOutVec_.end(); i++)
-				*i=logCoefficient*log10(*i);
-		}
-	}
-}
-
+/****************************************************************
+ ****************************************************************
+ **                                                            **
+ **                       psd_i class                          **
+ **                                                            **
+ ****************************************************************
+ ****************************************************************/
 psd_i::psd_i(const char *uuid, const char *label) :
    psd_base(uuid, label),
    doPSD(false),
@@ -242,6 +424,7 @@ psd_i::psd_i(const char *uuid, const char *label) :
 	addPropertyChangeListener("overlap", this, &psd_i::overlapChanged);
 	addPropertyChangeListener("numAvg", this, &psd_i::numAvgChanged);
 	addPropertyChangeListener("rfFreqUnits", this, &psd_i::rfFreqUnitsChanged);
+	addPropertyChangeListener("logCoefficient", this, &psd_i::logCoeffChanged);
 
 	psd_dataFloat_out->setNewConnectListener(&listener);
 	fft_dataFloat_out->setNewConnectListener(&listener);
@@ -384,144 +567,125 @@ psd_i::~psd_i()
 ************************************************************************************************/
 int psd_i::serviceFunction()
 {
-    LOG_DEBUG(psd_i, "serviceFunction() example log message");
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 
-    bulkio::InFloatPort::dataTransfer *tmp = dataFloat_in->getPacket(-1);
-	if (not tmp) { // No data is available
+	// clean up finished threads
+	{
+		boost::mutex::scoped_lock lock(stateMapLock);
+		for(map_type::iterator i = stateMap.begin();i!=stateMap.end();){
+			if( i->second->finished() ){
+				stateMap.erase(i++);
+			} else {
+				++i;
+			}
+		}
+	}
+
+	// TODO - can we do this with a stream listener instead of polling?
+	// TODO - BLOCKING call can cause psd_i::stop() to time out and raise exception
+	bulkio::InFloatPort::StreamList streamsIn = dataFloat_in->pollStreams(1);
+	//bulkio::InFloatPort::StreamList streamsIn = dataFloat_in->pollStreams(bulkio::Const::BLOCKING);
+	if (streamsIn.empty()) {
+		LOG_TRACE(psd_i,"serviceFunction, No streams in");
 		return NOOP;
 	}
-	if (tmp->inputQueueFlushed)
-	{
-		LOG_WARN(psd_i, "Input queue flushed - data has been thrown on the floor.  Flushing internal buffers.");
-		//flush all our processor states if the queue flushed
-		boost::mutex::scoped_lock lock(psdLock_);
-		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
-			i->second->flush();
-	}
-	bool updateSRI = false;
-	PsdProcessor::ParamStruct params;
-	{
-		boost::mutex::scoped_lock lock(psdLock_);
-		std::map<std::string, PsdProcessor*>::iterator i = stateMap.find(tmp->streamID);
-		if (i==stateMap.end())
-		{
-			updateSRI = true;
-			map_type::value_type processor(tmp->streamID, new PsdProcessor(psdOutVec_, fftOutVec_,fftSize, overlap, numAvg));
-			i = stateMap.insert(stateMap.end(),processor);
-		}
 
-		//process with the PsdState right here
-		params = i->second->process(tmp->dataBuffer, tmp->SRI.mode==1, doPSD, doFFT, logCoefficient);
-		if (tmp->EOS)
+	// add processors for new streams
+	int retval = NOOP;
+	for(bulkio::InFloatPort::StreamList::iterator inputStreamIter = streamsIn.begin(); inputStreamIter!=streamsIn.end(); inputStreamIter++){
+		boost::mutex::scoped_lock lock(stateMapLock);
+		map_type::iterator processorMapIter = stateMap.find(inputStreamIter->streamID());
+		if (processorMapIter==stateMap.end())
 		{
-			delete i->second;
-			stateMap.erase(i);
+			retval = NORMAL;
+			LOG_INFO(psd_i,"Adding new thread processor: "<<inputStreamIter->streamID());
+			// TODO - do we need to check to see if output stream already exists?
+			bulkio::OutFloatStream outputFFT = fft_dataFloat_out->createStream(inputStreamIter->streamID());
+			bulkio::OutFloatStream outputPSD = psd_dataFloat_out->createStream(inputStreamIter->streamID());
+			boost::shared_ptr<PsdProcessor> newThread(
+					new PsdProcessor(*inputStreamIter, outputFFT, outputPSD, fftSize, overlap, numAvg,
+							logCoefficient, doFFT, doPSD, rfFreqUnits));
+			map_type::value_type newEntry(inputStreamIter->streamID(),newThread);
+			processorMapIter = stateMap.insert(stateMap.end(),newEntry);
 		}
 	}
-	if (params.updateSRI)
-		updateSRI = true;
 
-	// NOTE: You must make at least one valid pushSRI call
-	if (tmp->sriChanged || updateSRI) {
-		bool validRF = false;
-		double xdelta = tmp->SRI.xdelta;
-		tmp->SRI.xdelta = 1.0/(xdelta*params.fftSz);
-
-		double ifStart = 0;
-		if (tmp->SRI.mode==1) //complex Data
-			ifStart = -((params.fftSz/2-1)*tmp->SRI.xdelta);
-
-		//adjust the xstart for RF units if required
-		if (rfFreqUnits)
-		{
-			long rfCentre = getKeywordByID<CORBA::Long>(tmp->SRI, "CHAN_RF", validRF);
-			if (!validRF)
-			{
-				rfCentre = getKeywordByID<CORBA::Long>(tmp->SRI, "COL_RF", validRF);
-			}
-			if (validRF)
-			{
-				double ifCentre=0;
-				if (tmp->SRI.mode==0) //real data is at fs/4.0
-					ifCentre = 1.0/xdelta/4.0;
-				double deltaF = rfCentre-ifCentre; //Translation between rf & if
-				tmp->SRI.xstart = ifStart+deltaF;  //This the the start bin at RF
-			}
-			else
-			{
-				LOG_WARN(psd_i, "rf Frequency units requested but no rf unit keyword present");
-			}
-		}
-		if (!validRF)
-			tmp->SRI.xstart = ifStart;
-
-		if (tmp->SRI.mode==0)
-			tmp->SRI.subsize = params.fftSz/2+1;
-		else
-			tmp->SRI.subsize =params.fftSz;
-		tmp->SRI.ydelta = xdelta*params.strideSize;
-		tmp->SRI.yunits = BULKIO::UNITS_TIME;
-		tmp->SRI.xunits = BULKIO::UNITS_FREQUENCY;
-		tmp->SRI.mode = 1; //data is always complex out of the fft
-		fft_dataFloat_out->pushSRI(tmp->SRI);
-		if (numAvg > 2)
-			tmp->SRI.ydelta*=params.numAverage;
-		tmp->SRI.mode = 0; //data is always real out of the psd
-		psd_dataFloat_out->pushSRI(tmp->SRI);
-	}
-
-	//to do - should adjust T for extra sample delay from elements in last loop
-	if (!psdOutVec_.empty())
-	{
-		psd_dataFloat_out->pushPacket(psdOutVec_, tmp->T, tmp->EOS, tmp->streamID);
-	}
-	if (!fftOutVec_.empty())
-	{
-		fft_dataFloat_out->pushPacket(fftOutVec_, tmp->T, tmp->EOS, tmp->streamID);
-	}
-	delete tmp; // IMPORTANT: MUST RELEASE THE RECEIVED DATA BLOCK
-	return NORMAL;
+	return retval;
 }
 
-void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue)
-{
+void psd_i::stop() throw (CORBA::SystemException, CF::Resource::StopError){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
+	// clean up threads
+	{
+		boost::mutex::scoped_lock lock(stateMapLock);
+		for(map_type::iterator i = stateMap.begin();i!=stateMap.end();i++){
+			i->second->stop();
+		}
+		stateMap.clear();
+	}
+	psd_base::stop();
+}
+
+void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 	if (*oldValue != *newValue) {
-		boost::mutex::scoped_lock lock(psdLock_);
+		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++) {
 			i->second->updateFftSize(fftSize);
 		}
 	}
 }
 
-void psd_i::numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue)
-{
+void psd_i::numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 	if (*oldValue != *newValue) {
-		boost::mutex::scoped_lock lock(psdLock_);
+		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateNumAvg(numAvg);
 	}
 }
 
-void psd_i::overlapChanged(const int *oldValue, const int *newValue)
-{
+void psd_i::overlapChanged(const int *oldValue, const int *newValue){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 	if (*oldValue != *newValue) {
-		boost::mutex::scoped_lock lock(psdLock_);
+		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateOverlap(overlap);
 	}
 }
 
-void psd_i::callBackFunc( const char* connectionId)
-{
-	doPSD = (psd_dataFloat_out->state()!=BULKIO::IDLE);
-	doFFT = (fft_dataFloat_out->state()!=BULKIO::IDLE);
+void psd_i::rfFreqUnitsChanged(const bool *oldValue, const bool *newValue){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
+	if (*oldValue != *newValue) {
+		boost::mutex::scoped_lock lock(stateMapLock);
+		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
+			i->second->updateRfFreqUnits(rfFreqUnits);
+	}
 }
 
-void psd_i::rfFreqUnitsChanged(const bool *oldValue, const bool *newValue)
-{
+void psd_i::logCoeffChanged(const float *oldValue, const float *newValue){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 	if (*oldValue != *newValue) {
-		boost::mutex::scoped_lock lock(psdLock_);
+		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
-			i->second->forceSRIUpdate();
+			i->second->updateLogCoefficient(logCoefficient);
+	}
+}
+
+void psd_i::callBackFunc( const char* connectionId){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
+	bool doUpdate = false;
+	if(doPSD != (psd_dataFloat_out->state()!=BULKIO::IDLE)){
+		doPSD = !doPSD;
+		doUpdate = true;
+	}
+	if(doFFT != (fft_dataFloat_out->state()!=BULKIO::IDLE)){
+		doFFT = !doFFT;
+		doUpdate = true;
+	}
+	if(doUpdate){
+		boost::mutex::scoped_lock lock(stateMapLock);
+		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
+			i->second->updateActions(doPSD, doFFT);
 	}
 }

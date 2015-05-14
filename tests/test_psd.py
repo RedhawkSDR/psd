@@ -110,6 +110,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 self.assertAlmostEqual(sri.xstart, ifStart)
         
     def testScaBasicBehavior(self):
+        print "-------- TESTING Basic Behavior --------"
         #######################################################################
         # Launch the resource with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
@@ -157,6 +158,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #######################################################################
         # Simulate regular resource shutdown
         self.comp.releaseObject()
+        
+        print "*PASSED\n"
         
     def testRealData1(self):
         print "-------- TESTING w/REAL DATA1 --------"
@@ -453,12 +456,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         print "*PASSED\n"
 
     def testColRfReal(self):
-        print "-------- TESTING w/REAL ColRfReal --------"
+        print "-------- TESTING w/REAL ColRf --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
         sb.start()
-        ID = "testColRfReal"
+        ID = "ColRfReal"
         fftSize = 4096
         self.comp.fftSize = fftSize
         self.comp.rfFreqUnits =  True
@@ -494,12 +497,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         print "*PASSED\n"
 
     def testColRfCx(self):
-        print "-------- TESTING w/REAL ColRfReal --------"
+        print "-------- TESTING w/COMPLEX ColRf --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
         sb.start()
-        ID = "testColRfCx"
+        ID = "ColRfCx"
         fftSize = 4096
         self.comp.fftSize = fftSize
         self.comp.rfFreqUnits =  True
@@ -535,12 +538,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         print "*PASSED\n"
         
     def testColRfCxToggle(self):
-        print "-------- TESTING w/Toggle rfFreqUnits --------"
+        print "-------- TESTING w/COMPLEX rfFreqUnitsToggle --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
         sb.start()
-        ID = "testColRfCx"
+        ID = "rfFreqUnitsToggle"
         fftSize = 4096
         self.comp.fftSize = fftSize
         self.comp.rfFreqUnits =  False
@@ -583,7 +586,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
         
         print "*PASSED\n"
-    
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../psd.spd.xml") # By default tests all implementations

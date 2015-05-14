@@ -24,10 +24,25 @@
 #include "framebuffer.h"
 #include "vectormean.h"
 
-class psd_i;
 
-class PsdProcessor
+typedef struct ParamStruct {
+	size_t fftSz;
+	bool fftSzChanged;
+	size_t strideSize;
+	size_t numAverage;
+	bool numAverageChanged;
+	int overlap;
+	bool doFFT;
+	bool doPSD;
+	bool rfFreqUnits;
+	float logCoeff;
+	bool updateSRI;
+} param_struct;
+
+
+class PsdProcessor : protected ThreadedComponent
 {
+    ENABLE_LOGGING
 	//class to take care of psd processing
 	//handles real/complex with transitions and
 	//output averaging and overlap and buffering and db conversion
@@ -35,52 +50,97 @@ class PsdProcessor
 	//
 	//this class does both fft,psd, or both (or neither) as requested at processing time
 public:
-	struct ParamStruct {
-		size_t fftSz;
-		bool updateSRI;
-		size_t strideSize;
-		size_t numAverage;
-	};
-	PsdProcessor(std::vector<float>& psdOutVec,
-			 std::vector<float>& fftOutVec,
-			 size_t fftSize,
-			 int overlap,
-			 size_t numAvg);
+	PsdProcessor(bulkio::InFloatStream inStream,
+			bulkio::OutFloatStream fftStream,
+			bulkio::OutFloatStream psdStream,
+			size_t fftSize,
+			int overlap,
+			size_t numAvg,
+			float logCoeff,
+			bool doFFT,
+			bool doPSD,
+			bool rfFreqUnits,
+			float delay=0.1);
 	~PsdProcessor();
 
 	void updateFftSize(size_t fftSize);
 	void updateOverlap(int overlap);
 	void updateNumAvg(size_t avg);
+	void updateRfFreqUnits(bool enable);
+	void updateLogCoefficient(float logCoeff);
+	void updateActions(bool psd, bool fft);
 	void forceSRIUpdate();
-	void flush();
-	ParamStruct process(std::vector<float>& input, bool cmplx, bool doPSD, bool doFFT, float logCoefficient);
+	bool finished();
+    void stop() throw (CF::Resource::StopError, CORBA::SystemException);
 
 private:
-	//for output
-	std::vector<float>& psdOutVec_;
-	std::vector<float>& fftOutVec_;
+	int serviceFunction(); // called by thread in a loop
+	void updateSRI(const bulkio::FloatDataBlock &block);
+	void flush();
 
-	template <typename TimeType>
-	void serviceLoop(Fft<TimeType>* psd, TimeType& psdInput, bool doPSD, bool doFFT, float logCoefficient);
+	// in/out streams
+	bulkio::InFloatStream in;
+	bulkio::OutFloatStream outFFT;
+	bulkio::OutFloatStream outPSD;
 
-	framebuffer<std::vector<float>::iterator> frameBuffer_;
-	std::vector<framebuffer<std::vector<float>::iterator>::frame> framedData_;
-
+	// PSD processing object ptrs
 	RealPsd* realPsd_;
 	ComplexPsd* complexPsd_;
-	//internal processing vectors
 
-	VectorMean<float, fftwf_allocator<float> > vecMean_;
+	//internal processing vectors
 	RealFFTWVector realIn_;
 	ComplexFFTWVector complexIn_;
 	ComplexFFTWVector fftOut_;
 	RealFFTWVector psdOut_;
 
-	//internal vector for psd averaging
+	// for psd averaging
+	VectorMean<float, fftwf_allocator<float> > vecMean_;
 	std::vector<float> psdAverage_;
 
-	int overlap_;
-	ParamStruct params_;
+	//for output - TODO - can we do without this additional data structure/memcpy?
+	std::vector<float> psdOutVec;
+	std::vector<float> fftOutVec;
+
+	// parameters
+	param_struct params;
+	param_struct params_cache;
+	boost::shared_ptr<boost::mutex> paramLock;
+
+	// Function to get an SRI keyword value
+	template <typename TYPE> TYPE getKeywordByID(const BULKIO::StreamSRI &sri, CORBA::String_member id, bool &valid) {
+		/****************************************************************************************************
+		 * Description: Retrieve the value assigned to a given id.
+		 * sri   - StreamSRI object to process
+		 * id    - Keyword identifier string
+		 * valid - Flag to indicate whether the returned value is valid (false if the keyword doesn't exist)
+		 ****************************************************************************************************/
+		valid = false;
+		TYPE value;
+
+		for(unsigned int i=0; i < sri.keywords.length(); i++) {
+			if(!strcmp(sri.keywords[i].id, id)) {
+				valid = true;
+				if (sri.keywords[i].value >>= value)
+					break;
+				//try with double and float to extract it and see if we can make it happen if the
+				//format of this keyword is different than we expect
+				double d;
+				if (sri.keywords[i].value >>= d)
+				{
+					value=static_cast<TYPE>(d);
+					break;
+				}
+				float f;
+				if (sri.keywords[i].value >>= f)
+				{
+					value=static_cast<TYPE>(f);
+					break;
+				}
+				valid = false;
+			}
+		}
+		return value;
+	}
 
 };
 
@@ -91,61 +151,23 @@ class psd_i : public psd_base
         psd_i(const char *uuid, const char *label);
         ~psd_i();
         int serviceFunction();
+        void stop() throw (CF::Resource::StopError, CORBA::SystemException);
 	private:
 		void fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue);
 		void numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue);
 		void overlapChanged(const int *oldValue, const int *newValue);
 		void rfFreqUnitsChanged(const bool *oldValue, const bool *newValue);
+		void logCoeffChanged(const float *oldValue, const float *newValue);
 
-		typedef std::map<std::string, PsdProcessor*> map_type;
+		typedef std::map<std::string, boost::shared_ptr<PsdProcessor> > map_type;
 		map_type stateMap;
-
-		std::vector<float> psdOutVec_;
-		std::vector<float> fftOutVec_;
-
-		boost::mutex psdLock_;
+		boost::mutex stateMapLock;
 
 		bool doPSD;
 		bool doFFT;
 
         bulkio::MemberConnectionEventListener<psd_i> listener;
         void callBackFunc( const char* connectionId);
-
-    	// Function to get an SRI keyword value
-    	template <typename TYPE> TYPE getKeywordByID(BULKIO::StreamSRI &sri, CORBA::String_member id, bool &valid) {
-    		/****************************************************************************************************
-    		 * Description: Retrieve the value assigned to a given id.
-    		 * sri   - StreamSRI object to process
-    		 * id    - Keyword identifier string
-    		 * valid - Flag to indicate whether the returned value is valid (false if the keyword doesn't exist)
-    		 ****************************************************************************************************/
-    		valid = false;
-    		TYPE value;
-
-    		for(unsigned int i=0; i < sri.keywords.length(); i++) {
-    			if(!strcmp(sri.keywords[i].id, id)) {
-    				valid = true;
-    				if (sri.keywords[i].value >>= value)
-    					break;
-    				//try with double and float to extract it and see if we can make it happen if the
-    				//format of this keyword is different than we expect
-    				double d;
-    				if (sri.keywords[i].value >>= d)
-    				{
-    					value=static_cast<TYPE>(d);
-    					break;
-    				}
-    				float f;
-    				if (sri.keywords[i].value >>= f)
-    				{
-    					value=static_cast<TYPE>(f);
-    					break;
-    				}
-    				valid = false;
-    			}
-    		}
-    		return value;
-    	}
 };
 
 #endif
