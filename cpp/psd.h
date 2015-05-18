@@ -101,7 +101,8 @@ private:
 	std::vector<float> psdOutVec;
 	std::vector<float> fftOutVec;
 
-	// parameters
+	// parameters and status
+	bool eos;
 	param_struct params;
 	param_struct params_cache;
 	boost::shared_ptr<boost::mutex> paramLock;
@@ -158,6 +159,7 @@ class psd_i : public psd_base
 		void overlapChanged(const int *oldValue, const int *newValue);
 		void rfFreqUnitsChanged(const bool *oldValue, const bool *newValue);
 		void logCoeffChanged(const float *oldValue, const float *newValue);
+		void clearThreads();
 
 		typedef std::map<std::string, boost::shared_ptr<PsdProcessor> > map_type;
 		map_type stateMap;

@@ -85,6 +85,7 @@ PsdProcessor::PsdProcessor(bulkio::InFloatStream inStream,
 		realPsd_(NULL),
 		complexPsd_(NULL),
 		vecMean_(numAvg, psdOut_, psdAverage_),
+		eos(false),
 		paramLock(new boost::mutex()){
 	LOG_DEBUG(PsdProcessor,__PRETTY_FUNCTION__<<" streamID="<<in.streamID());
 	params.fftSz = fftSize;
@@ -164,7 +165,7 @@ void PsdProcessor::updateLogCoefficient(float logCoeff){
 
 bool PsdProcessor::finished(){
 	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
-	return !serviceThread->threadRunning();
+	return eos;
 }
 
 void PsdProcessor::stop() throw (CORBA::SystemException, CF::Resource::StopError){
@@ -244,6 +245,7 @@ int PsdProcessor::serviceFunction(){
 		// TODO: what does it mean to !block? eos? ran out of data without eos?
 		if( in.eos()){
 			LOG_INFO(PsdProcessor,"process, in !block, got eos");
+			eos=true;
 			return FINISH;
 		} else {
 			LOG_INFO(PsdProcessor,"process, in !block, no eos");
@@ -344,6 +346,12 @@ int PsdProcessor::serviceFunction(){
 		outFFT.write(fftOutVec,block.getTimestamps().front().time);
 	}
 
+	if (in.eos()){
+		LOG_TRACE(PsdProcessor,"process, got EOS");
+		eos=true;
+		return FINISH;
+	}
+
 	return NORMAL;
 }
 
@@ -432,7 +440,7 @@ psd_i::psd_i(const char *uuid, const char *label) :
 
 psd_i::~psd_i()
 {
-
+	clearThreads();
 }
 /***********************************************************************************************
 
@@ -574,6 +582,7 @@ int psd_i::serviceFunction()
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for(map_type::iterator i = stateMap.begin();i!=stateMap.end();){
 			if( i->second->finished() ){
+				LOG_INFO(psd_i,"Removing thread processor (eos): "<<i->first);
 				stateMap.erase(i++);
 			} else {
 				++i;
@@ -615,7 +624,12 @@ int psd_i::serviceFunction()
 
 void psd_i::stop() throw (CORBA::SystemException, CF::Resource::StopError){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
-	// clean up threads
+	clearThreads();
+	psd_base::stop();
+}
+
+void psd_i::clearThreads(){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 	{
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for(map_type::iterator i = stateMap.begin();i!=stateMap.end();i++){
@@ -623,7 +637,6 @@ void psd_i::stop() throw (CORBA::SystemException, CF::Resource::StopError){
 		}
 		stateMap.clear();
 	}
-	psd_base::stop();
 }
 
 void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue){

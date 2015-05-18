@@ -586,6 +586,57 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
         
         print "*PASSED\n"
+        
+    def testEOS(self):
+        print "-------- TESTING EOS w/COMPLEX DATA --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "eos"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  False
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(2*nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = True
+        colRfVal = 100e6
+        keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+
+        time.sleep(.5)
+        self.src.push(data, EOS=True, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        self.assertTrue(self.fftsink.eos())
+        self.assertTrue(self.psdsink.eos())
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        
+        print "*PASSED\n"
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../psd.spd.xml") # By default tests all implementations
