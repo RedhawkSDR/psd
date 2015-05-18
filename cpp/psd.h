@@ -153,6 +153,7 @@ class psd_i : public psd_base
         ~psd_i();
         int serviceFunction();
         void stop() throw (CF::Resource::StopError, CORBA::SystemException);
+        void streamAdded(bulkio::InFloatStream stream);
 	private:
 		void fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue);
 		void numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue);

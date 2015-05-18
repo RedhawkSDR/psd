@@ -434,6 +434,7 @@ psd_i::psd_i(const char *uuid, const char *label) :
 	addPropertyChangeListener("rfFreqUnits", this, &psd_i::rfFreqUnitsChanged);
 	addPropertyChangeListener("logCoefficient", this, &psd_i::logCoeffChanged);
 
+	dataFloat_in->addStreamListener(this, &psd_i::streamAdded);
 	psd_dataFloat_out->setNewConnectListener(&listener);
 	fft_dataFloat_out->setNewConnectListener(&listener);
 }
@@ -578,48 +579,38 @@ int psd_i::serviceFunction()
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 
 	// clean up finished threads
+	int retval = NOOP;
 	{
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for(map_type::iterator i = stateMap.begin();i!=stateMap.end();){
 			if( i->second->finished() ){
 				LOG_INFO(psd_i,"Removing thread processor (eos): "<<i->first);
 				stateMap.erase(i++);
+				retval = NORMAL;
 			} else {
 				++i;
 			}
 		}
 	}
 
-	// TODO - can we do this with a stream listener instead of polling?
-	// TODO - BLOCKING call can cause psd_i::stop() to time out and raise exception
-	bulkio::InFloatPort::StreamList streamsIn = dataFloat_in->pollStreams(1);
-	//bulkio::InFloatPort::StreamList streamsIn = dataFloat_in->pollStreams(bulkio::Const::BLOCKING);
-	if (streamsIn.empty()) {
-		LOG_TRACE(psd_i,"serviceFunction, No streams in");
-		return NOOP;
-	}
-
-	// add processors for new streams
-	int retval = NOOP;
-	for(bulkio::InFloatPort::StreamList::iterator inputStreamIter = streamsIn.begin(); inputStreamIter!=streamsIn.end(); inputStreamIter++){
-		boost::mutex::scoped_lock lock(stateMapLock);
-		map_type::iterator processorMapIter = stateMap.find(inputStreamIter->streamID());
-		if (processorMapIter==stateMap.end())
-		{
-			retval = NORMAL;
-			LOG_INFO(psd_i,"Adding new thread processor: "<<inputStreamIter->streamID());
-			// TODO - do we need to check to see if output stream already exists?
-			bulkio::OutFloatStream outputFFT = fft_dataFloat_out->createStream(inputStreamIter->streamID());
-			bulkio::OutFloatStream outputPSD = psd_dataFloat_out->createStream(inputStreamIter->streamID());
-			boost::shared_ptr<PsdProcessor> newThread(
-					new PsdProcessor(*inputStreamIter, outputFFT, outputPSD, fftSize, overlap, numAvg,
-							logCoefficient, doFFT, doPSD, rfFreqUnits));
-			map_type::value_type newEntry(inputStreamIter->streamID(),newThread);
-			processorMapIter = stateMap.insert(stateMap.end(),newEntry);
-		}
-	}
-
 	return retval;
+}
+
+void psd_i::streamAdded(bulkio::InFloatStream stream){
+	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
+	boost::mutex::scoped_lock lock(stateMapLock);
+	if (stateMap.find(stream.streamID())==stateMap.end()){
+		LOG_INFO(psd_i,"Adding new thread processor: "<<stream.streamID());
+		bulkio::OutFloatStream outputFFT = fft_dataFloat_out->createStream(stream.streamID());
+		bulkio::OutFloatStream outputPSD = psd_dataFloat_out->createStream(stream.streamID());
+		boost::shared_ptr<PsdProcessor> newThread(
+				new PsdProcessor(stream, outputFFT, outputPSD, fftSize, overlap, numAvg,
+						logCoefficient, doFFT, doPSD, rfFreqUnits));
+		map_type::value_type newEntry(stream.streamID(),newThread);
+		stateMap.insert(stateMap.end(),newEntry);
+	} else {
+		LOG_WARN(psd_i,"New stream with stream ID "<<stream.streamID()<<", but already have entry for that stream ID");
+	}
 }
 
 void psd_i::stop() throw (CORBA::SystemException, CF::Resource::StopError){
