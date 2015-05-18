@@ -155,11 +155,11 @@ class psd_i : public psd_base
         void stop() throw (CF::Resource::StopError, CORBA::SystemException);
         void streamAdded(bulkio::InFloatStream stream);
 	private:
-		void fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue);
-		void numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue);
-		void overlapChanged(const int *oldValue, const int *newValue);
-		void rfFreqUnitsChanged(const bool *oldValue, const bool *newValue);
-		void logCoeffChanged(const float *oldValue, const float *newValue);
+		void fftSizeChanged(unsigned int oldValue, unsigned int newValue);
+		void numAvgChanged(unsigned int oldValue, unsigned int newValue);
+		void overlapChanged(int oldValue, int newValue);
+		void rfFreqUnitsChanged(bool oldValue, bool newValue);
+		void logCoeffChanged(float oldValue, float newValue);
 		void clearThreads();
 
 		typedef std::map<std::string, boost::shared_ptr<PsdProcessor> > map_type;

@@ -428,11 +428,11 @@ psd_i::psd_i(const char *uuid, const char *label) :
    listener(*this, &psd_i::callBackFunc)
 
 {
-	addPropertyChangeListener("fftSize", this, &psd_i::fftSizeChanged);
-	addPropertyChangeListener("overlap", this, &psd_i::overlapChanged);
-	addPropertyChangeListener("numAvg", this, &psd_i::numAvgChanged);
-	addPropertyChangeListener("rfFreqUnits", this, &psd_i::rfFreqUnitsChanged);
-	addPropertyChangeListener("logCoefficient", this, &psd_i::logCoeffChanged);
+	addPropertyListener(fftSize, this, &psd_i::fftSizeChanged);
+	addPropertyListener(overlap, this, &psd_i::overlapChanged);
+	addPropertyListener(numAvg, this, &psd_i::numAvgChanged);
+	addPropertyListener(rfFreqUnits, this, &psd_i::rfFreqUnitsChanged);
+	addPropertyListener(logCoefficient, this, &psd_i::logCoeffChanged);
 
 	dataFloat_in->addStreamListener(this, &psd_i::streamAdded);
 	psd_dataFloat_out->setNewConnectListener(&listener);
@@ -630,9 +630,9 @@ void psd_i::clearThreads(){
 	}
 }
 
-void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *newValue){
+void psd_i::fftSizeChanged(unsigned int oldValue, unsigned int newValue){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
-	if (*oldValue != *newValue) {
+	if (oldValue != newValue) {
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++) {
 			i->second->updateFftSize(fftSize);
@@ -640,36 +640,36 @@ void psd_i::fftSizeChanged(const unsigned int *oldValue, const unsigned int *new
 	}
 }
 
-void psd_i::numAvgChanged(const unsigned int *oldValue, const unsigned int *newValue){
+void psd_i::numAvgChanged(unsigned int oldValue, unsigned int newValue){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
-	if (*oldValue != *newValue) {
+	if (oldValue != newValue) {
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateNumAvg(numAvg);
 	}
 }
 
-void psd_i::overlapChanged(const int *oldValue, const int *newValue){
+void psd_i::overlapChanged(int oldValue, int newValue){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
-	if (*oldValue != *newValue) {
+	if (oldValue != newValue) {
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateOverlap(overlap);
 	}
 }
 
-void psd_i::rfFreqUnitsChanged(const bool *oldValue, const bool *newValue){
+void psd_i::rfFreqUnitsChanged(bool oldValue, bool newValue){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
-	if (*oldValue != *newValue) {
+	if (oldValue != newValue) {
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateRfFreqUnits(rfFreqUnits);
 	}
 }
 
-void psd_i::logCoeffChanged(const float *oldValue, const float *newValue){
+void psd_i::logCoeffChanged(float oldValue, float newValue){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
-	if (*oldValue != *newValue) {
+	if (oldValue != newValue) {
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for (map_type::iterator i = stateMap.begin(); i!=stateMap.end(); i++)
 			i->second->updateLogCoefficient(logCoefficient);
