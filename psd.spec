@@ -45,10 +45,10 @@ BuildRequires:  bulkioInterfaces >= 2.0
 Requires:       bulkioInterfaces >= 2.0
 
 # Softpkg requirements
-BuildRequires:  dsp-devel >= 1.2.0
-Requires:       dsp >= 1.2.0
-BuildRequires:  fftlib-devel >= 1.1.0
-Requires:       fftlib >= 1.1.0
+BuildRequires:  dsp-devel >= 1.1.0
+Requires:       dsp >= 1.1.0
+BuildRequires:  fftlib-devel >= 1.0.0
+Requires:       fftlib >= 1.0.0
 
 %description
 Component %{name}
