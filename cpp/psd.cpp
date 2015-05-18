@@ -358,40 +358,38 @@ int PsdProcessor::serviceFunction(){
 void PsdProcessor::updateSRI(const bulkio::FloatDataBlock &block){
 	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
 	BULKIO::StreamSRI outputSRI;
-	bool validRF = false;
 	double xdelta_in = block.xdelta();
 	outputSRI.xdelta = 1.0/(xdelta_in*params_cache.fftSz);
-	LOG_TRACE(PsdProcessor,"updateSRI - block.xdelta()="<<block.xdelta());
-	LOG_TRACE(PsdProcessor,"updateSRI - outputSRI.xdelta="<<outputSRI.xdelta);
 
 	double ifStart = 0;
 	if (block.complex()) //complex Data
 		ifStart = -((params_cache.fftSz/2-1)*outputSRI.xdelta);
-	LOG_TRACE(PsdProcessor,"updateSRI - ifStart="<<ifStart);
 
 	//adjust the xstart for RF units if required
 	if (params_cache.rfFreqUnits){
-		LOG_TRACE(PsdProcessor,"updateSRI - rfFreqUnits=true");
-		long rfCentre = getKeywordByID<CORBA::Long>(block.sri(), "CHAN_RF", validRF);
-		if (!validRF){
-			LOG_TRACE(PsdProcessor,"updateSRI - rfFreqUnits=true, no CHAN_RF");
-			rfCentre = getKeywordByID<CORBA::Long>(block.sri(), "COL_RF", validRF);
+		const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(block.sri().keywords);
+		long rfCenter;
+		bool validRF = false;
+		if(props.find("CHAN_RF")!=props.end()){
+			rfCenter = props["CHAN_RF"].toLong();
+			validRF = true;
+		} else if(props.find("COL_RF")!=props.end()){
+			rfCenter = props["COL_RF"].toLong();
+			validRF = true;
 		}
 		if (validRF){
 			double ifCentre=0;
 			if (!block.complex()) //real data is at fs/4.0
 				ifCentre = 1.0/xdelta_in/4.0;
-			double deltaF = rfCentre-ifCentre; //Translation between rf & if
+			double deltaF = rfCenter-ifCentre; //Translation between rf & if
 			outputSRI.xstart = ifStart+deltaF;  //This the the start bin at RF
 		} else {
 			LOG_WARN(PsdProcessor, "rf Frequency units requested but no rf unit keyword present");
+			outputSRI.xstart = ifStart;
 		}
 	} else {
-		LOG_TRACE(PsdProcessor,"updateSRI - rfFreqUnits=false");
-	}
-	if (!validRF)
 		outputSRI.xstart = ifStart;
-	LOG_TRACE(PsdProcessor,"updateSRI - outputSRI.xstart="<<outputSRI.xstart);
+	}
 
 	if (!block.complex())
 		outputSRI.subsize = params_cache.fftSz/2+1;

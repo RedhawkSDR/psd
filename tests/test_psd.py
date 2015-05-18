@@ -538,12 +538,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         print "*PASSED\n"
         
     def testColRfCxToggle(self):
-        print "-------- TESTING w/COMPLEX rfFreqUnitsToggle --------"
+        print "-------- TESTING w/COMPLEX rfFreqUnitsToggle COL_RF --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
         sb.start()
-        ID = "rfFreqUnitsToggle"
+        ID = "rfFreqUnitsToggleColRf"
         fftSize = 4096
         self.comp.fftSize = fftSize
         self.comp.rfFreqUnits =  False
@@ -564,6 +564,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         cxData = True
         colRfVal = 100e6
         keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        #keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'double')]
+        #keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'long')]
         self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
         time.sleep(.5)
 
@@ -584,6 +586,58 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         data = self.fftsink.getData()
         psdOut = self.psdsink.getData()
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        
+        print "*PASSED\n"
+        
+    def testChanRfCxToggle(self):
+        print "-------- TESTING w/COMPLEX rfFreqUnitsToggle CHAN_RF--------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "rfFreqUnitsToggleChanRf"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  False
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(2*nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = True
+        chanRfVal = 100e6
+        #keywords = [sb.io_helpers.SRIKeyword('CHAN_RF',chanRfVal, 'float')]
+        keywords = [sb.io_helpers.SRIKeyword('CHAN_RF',chanRfVal, 'double')]
+        #keywords = [sb.io_helpers.SRIKeyword('CHAN_RF',chanRfVal, 'long')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal)
+
+        self.comp.rfFreqUnits =  True
+        time.sleep(.5)
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        data = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal)
         
         print "*PASSED\n"
         

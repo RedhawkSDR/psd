@@ -50,17 +50,8 @@ class PsdProcessor : protected ThreadedComponent
 	//
 	//this class does both fft,psd, or both (or neither) as requested at processing time
 public:
-	PsdProcessor(bulkio::InFloatStream inStream,
-			bulkio::OutFloatStream fftStream,
-			bulkio::OutFloatStream psdStream,
-			size_t fftSize,
-			int overlap,
-			size_t numAvg,
-			float logCoeff,
-			bool doFFT,
-			bool doPSD,
-			bool rfFreqUnits,
-			float delay=0.1);
+	PsdProcessor(bulkio::InFloatStream inStream, bulkio::OutFloatStream fftStream, bulkio::OutFloatStream psdStream,
+			size_t fftSize, int overlap, size_t numAvg,	float logCoeff,	bool doFFT,	bool doPSD,	bool rfFreqUnits, float delay=0.1);
 	~PsdProcessor();
 
 	void updateFftSize(size_t fftSize);
@@ -106,43 +97,6 @@ private:
 	param_struct params;
 	param_struct params_cache;
 	boost::shared_ptr<boost::mutex> paramLock;
-
-	// Function to get an SRI keyword value
-	template <typename TYPE> TYPE getKeywordByID(const BULKIO::StreamSRI &sri, CORBA::String_member id, bool &valid) {
-		/****************************************************************************************************
-		 * Description: Retrieve the value assigned to a given id.
-		 * sri   - StreamSRI object to process
-		 * id    - Keyword identifier string
-		 * valid - Flag to indicate whether the returned value is valid (false if the keyword doesn't exist)
-		 ****************************************************************************************************/
-		valid = false;
-		TYPE value;
-
-		for(unsigned int i=0; i < sri.keywords.length(); i++) {
-			if(!strcmp(sri.keywords[i].id, id)) {
-				valid = true;
-				if (sri.keywords[i].value >>= value)
-					break;
-				//try with double and float to extract it and see if we can make it happen if the
-				//format of this keyword is different than we expect
-				double d;
-				if (sri.keywords[i].value >>= d)
-				{
-					value=static_cast<TYPE>(d);
-					break;
-				}
-				float f;
-				if (sri.keywords[i].value >>= f)
-				{
-					value=static_cast<TYPE>(f);
-					break;
-				}
-				valid = false;
-			}
-		}
-		return value;
-	}
-
 };
 
 class psd_i : public psd_base
