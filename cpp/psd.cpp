@@ -221,24 +221,24 @@ int PsdProcessor::serviceFunction(){
 
 	// To avoid blocking if data is not available...
 	if(!in.ready()){
-		LOG_TRACE(PsdProcessor,"process, input stream not ready, returning NOOP");
+		LOG_DEBUG(PsdProcessor,"serviceFunction - input stream not ready, returning NOOP");
 		return NOOP;
 	}
 
 	// get a block of data -- this is a blocking call
 	bulkio::FloatDataBlock block = in.read(params_cache.fftSz,params_cache.strideSize);
 
-	if (!block) { // TODO: considering the readiness check, when will this occur?
-		LOG_INFO(PsdProcessor,"process, got !block");
-		// TODO: what does it mean to !block? eos? ran out of data without eos?
+	if (!block) {
 		if( in.eos()){
-			LOG_INFO(PsdProcessor,"process, in !block, got eos");
+			LOG_DEBUG(PsdProcessor,"serviceFunction - got null block with EOS");
 			eos=true;
 			return FINISH;
 		} else {
-			LOG_INFO(PsdProcessor,"process, in !block, no eos");
+			LOG_DEBUG(PsdProcessor,"serviceFunction - got null block without EOS");
 			return NOOP;
 		}
+	} else {
+		LOG_DEBUG(PsdProcessor,"serviceFunction - got block of size "<<block.size());
 	}
 
 	if (block.inputQueueFlushed()) {
@@ -246,6 +246,8 @@ int PsdProcessor::serviceFunction(){
 		//flush all our processor states if the queue flushed
 		flush();
 	}
+
+	// TODO - what if we got a partial block w/o fftSz worth of data?
 
 	// do work and push out data
 	if (block.complex()) {
