@@ -65,7 +65,7 @@ public:
     void stop() throw (CF::Resource::StopError, CORBA::SystemException);
 
 private:
-	int serviceFunction(); // called by thread in a loop
+	int serviceFunction();
 	void updateSRI(const bulkio::FloatDataBlock &block);
 	void flush();
 

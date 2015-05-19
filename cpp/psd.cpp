@@ -219,14 +219,7 @@ int PsdProcessor::serviceFunction(){
 		vecMean_.setAvgNum(params_cache.numAverage);
 	}
 
-	// To avoid blocking if data is not available...
-	if(!in.ready()){
-		LOG_DEBUG(PsdProcessor,"serviceFunction - input stream not ready, returning NOOP");
-		return NOOP;
-	}
-
-	// get a block of data -- this is a blocking call
-	bulkio::FloatDataBlock block = in.read(params_cache.fftSz,params_cache.strideSize);
+	bulkio::FloatDataBlock block = in.tryread(params_cache.fftSz,params_cache.strideSize);
 
 	if (!block) {
 		if( in.eos()){
@@ -237,9 +230,8 @@ int PsdProcessor::serviceFunction(){
 			LOG_DEBUG(PsdProcessor,"serviceFunction - got null block without EOS");
 			return NOOP;
 		}
-	} else {
-		LOG_DEBUG(PsdProcessor,"serviceFunction - got block of size "<<block.size());
 	}
+	LOG_DEBUG(PsdProcessor,"serviceFunction - got block of size "<<block.size());
 
 	if (block.inputQueueFlushed()) {
 		LOG_WARN(PsdProcessor, "Input queue flushed.  Flushing internal buffers.");
@@ -251,7 +243,6 @@ int PsdProcessor::serviceFunction(){
 
 	// do work and push out data
 	if (block.complex()) {
-		LOG_TRACE(PsdProcessor,"process, calculating complex average");
 
 		// setup Complex
 		if (realPsd_){
@@ -263,12 +254,10 @@ int PsdProcessor::serviceFunction(){
 			vecMean_.clear();
 		}
 
-		// get Complex input and run Complex PSD
 		copyVec(block,complexIn_);
 		complexPsd_->run();
 
 	} else {
-		LOG_TRACE(PsdProcessor,"process, calculating scalar average");
 
 		// setup Scalar
 		if (complexPsd_){
@@ -280,7 +269,6 @@ int PsdProcessor::serviceFunction(){
 			vecMean_.clear();
 		}
 
-		// get Scalar input and run Scalar PSD
 		copyVec(block,realIn_);
 		realPsd_->run();
 	}
@@ -300,7 +288,6 @@ int PsdProcessor::serviceFunction(){
 		//take the log of the output if necessary
 		if (params_cache.logCoeff > 0){
 			for (size_t i=0;i<psdOutLen;i++){
-				// TODO - we could be modifying psdOut_'s underlying memory, is that ok?
 				psdOutPtr[i]=params_cache.logCoeff*log10(psdOutPtr[i]);
 			}
 		}
@@ -324,10 +311,12 @@ int PsdProcessor::serviceFunction(){
 	//        First is guaranteed to be offset 0, and may or may not be synthetic.
 	//        If any others, they will be non-synthetic.
 	// TODO - should adjust Timestamp for extra sample delay from elements in last loop
-	if (psdOutLen>0){ // can assume params_cache.doPSD=true and psdOutPtr!=NULL if psdOutLen>0
+	if (psdOutLen>0){
+		// we can assume params_cache.doPSD=true and psdOutPtr!=NULL if psdOutLen>0
 		outPSD.write(psdOutPtr, psdOutLen, block.getTimestamps().front().time);
 	}
-	if (fftOutLen>0){ // can assume params_cache.doFFT=true and fftOutPtr!=NULL if fftOutLen>0
+	if (fftOutLen>0){
+		// we can assume params_cache.doFFT=true and fftOutPtr!=NULL if fftOutLen>0
 		outFFT.write(fftOutPtr, fftOutLen, block.getTimestamps().front().time);
 	}
 
@@ -575,7 +564,7 @@ int psd_i::serviceFunction()
 		boost::mutex::scoped_lock lock(stateMapLock);
 		for(map_type::iterator i = stateMap.begin();i!=stateMap.end();){
 			if( i->second->finished() ){
-				LOG_INFO(psd_i,"Removing thread processor (eos): "<<i->first);
+				LOG_DEBUG(psd_i,"Removing thread processor (eos): "<<i->first);
 				stateMap.erase(i++);
 				retval = NORMAL;
 			} else {
@@ -591,7 +580,7 @@ void psd_i::streamAdded(bulkio::InFloatStream stream){
 	LOG_TRACE(psd_i,__PRETTY_FUNCTION__);
 	boost::mutex::scoped_lock lock(stateMapLock);
 	if (stateMap.find(stream.streamID())==stateMap.end()){
-		LOG_INFO(psd_i,"Adding new thread processor: "<<stream.streamID());
+		LOG_DEBUG(psd_i,"Adding new thread processor: "<<stream.streamID());
 		bulkio::OutFloatStream outputFFT = fft_dataFloat_out->createStream(stream.streamID());
 		bulkio::OutFloatStream outputPSD = psd_dataFloat_out->createStream(stream.streamID());
 		boost::shared_ptr<PsdProcessor> newThread(
