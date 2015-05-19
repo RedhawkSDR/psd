@@ -88,10 +88,6 @@ private:
 	VectorMean<float, fftwf_allocator<float> > vecMean_;
 	std::vector<float> psdAverage_;
 
-	//for output - TODO - can we do without this additional data structure/memcpy?
-	std::vector<float> psdOutVec;
-	std::vector<float> fftOutVec;
-
 	// parameters and status
 	bool eos;
 	param_struct params;

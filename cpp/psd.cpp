@@ -48,18 +48,6 @@ void copyVec(const bulkio::FloatDataBlock &block, ComplexFFTWVector &out){
 	memcpy(&out[0], block.data(), out.size()*sizeof(std::complex<float>));
 }
 
-template<typename T, typename U>
-void copyVec(const std::vector<float, T>&in, std::vector<float, U> &out){
-	out.resize(in.size());
-	memcpy(&out[0], &in[0], out.size()*sizeof(float));
-}
-
-template<typename T, typename U>
-void copyVec(const std::vector<std::complex<float>, T>&in, std::vector<float, U> &out){
-	out.resize(2*in.size());
-	memcpy(&out[0],&in[0], out.size()*sizeof(float));
-}
-
 /****************************************************************
  ****************************************************************
  **                                                            **
@@ -295,39 +283,37 @@ int PsdProcessor::serviceFunction(){
 		realPsd_->run();
 	}
 
-	// TODO - can we do this without a copy?
+	float* psdOutPtr = NULL;
+	size_t psdOutLen = 0;
 	if (params_cache.doPSD){
 		if (params_cache.numAverage > 1){
 			if (vecMean_.run()){
-				copyVec(psdAverage_,psdOutVec);
-			} else {
-				psdOutVec.clear();
+				psdOutPtr = &psdAverage_[0];
+				psdOutLen = psdAverage_.size();
 			}
 		} else {
-			copyVec(psdOut_,psdOutVec);
+			psdOutPtr = &psdOut_[0];
+			psdOutLen = psdOut_.size();
 		}
 		//take the log of the output if necessary
 		if (params_cache.logCoeff > 0){
-			for (std::vector<float>::iterator i=psdOutVec.begin(); i!=psdOutVec.end(); i++)
-				*i=params_cache.logCoeff*log10(*i);
+			for (size_t i=0;i<psdOutLen;i++){
+				// TODO - we could be modifying psdOut_'s underlying memory, is that ok?
+				psdOutPtr[i]=params_cache.logCoeff*log10(psdOutPtr[i]);
+			}
 		}
 	}
 
-	// TODO - can we do this without a copy?
+	std::complex<float>* fftOutPtr = NULL;
+	size_t fftOutLen = 0;
 	if (params_cache.doFFT){
-		copyVec(fftOut_,fftOutVec);
+		fftOutPtr = &fftOut_[0];
+		fftOutLen = fftOut_.size();
 	}
 
 	// Update SRI
 	if (params_cache.updateSRI || block.sriChanged()) {
 		params_cache.updateSRI = false; // always reset to false once addressed
-		LOG_TRACE(PsdProcessor,"process, need to update SRI");
-		// TODO - the debug below is unnecessary, comment out or remove
-		if (block.sriChangeFlags() & bulkio::sri::XDELTA) {
-			LOG_TRACE(PsdProcessor,"process, xdelta changed");
-		} else if (block.sriChangeFlags() & bulkio::sri::MODE) {
-			LOG_TRACE(PsdProcessor,"process, mode changed");
-		}
 		updateSRI(block);
 	}
 
@@ -336,18 +322,15 @@ int PsdProcessor::serviceFunction(){
 	//        First is guaranteed to be offset 0, and may or may not be synthetic.
 	//        If any others, they will be non-synthetic.
 	// TODO - should adjust Timestamp for extra sample delay from elements in last loop
-	if (params_cache.doPSD && !psdOutVec.empty()){
-		LOG_TRACE(PsdProcessor,"process, writing out psd");
-		outPSD.write(psdOutVec,block.getTimestamps().front().time);
+	if (psdOutLen>0){ // can assume params_cache.doPSD=true and psdOutPtr!=NULL if psdOutLen>0
+		outPSD.write(psdOutPtr, psdOutLen, block.getTimestamps().front().time);
 	}
-	if (params_cache.doFFT && !fftOutVec.empty()){
-		// TODO - FFT data is complex, SRI indicates complex, but here we're not pushing complex data. is this OK?
-		LOG_TRACE(PsdProcessor,"process, writing out fft");
-		outFFT.write(fftOutVec,block.getTimestamps().front().time);
+	if (fftOutLen>0){ // can assume params_cache.doFFT=true and fftOutPtr!=NULL if fftOutLen>0
+		outFFT.write(fftOutPtr, fftOutLen, block.getTimestamps().front().time);
 	}
 
 	if (in.eos()){
-		LOG_TRACE(PsdProcessor,"process, got EOS");
+		LOG_TRACE(PsdProcessor,"serviceFunction - got EOS");
 		eos=true;
 		return FINISH;
 	}
@@ -357,6 +340,14 @@ int PsdProcessor::serviceFunction(){
 
 void PsdProcessor::updateSRI(const bulkio::FloatDataBlock &block){
 	LOG_TRACE(PsdProcessor,__PRETTY_FUNCTION__);
+
+	// example of how to use sriChangeFlags
+	if (block.sriChangeFlags() & bulkio::sri::XDELTA) {
+		LOG_DEBUG(PsdProcessor,"SRI.xdelta changed");
+	} else if (block.sriChangeFlags() & bulkio::sri::MODE) {
+		LOG_DEBUG(PsdProcessor,"SRI.mode changed");
+	}
+
 	BULKIO::StreamSRI outputSRI;
 	double xdelta_in = block.xdelta();
 	outputSRI.xdelta = 1.0/(xdelta_in*params_cache.fftSz);
