@@ -33,6 +33,8 @@ import numpy as np
 import types
 import random
 
+DEBUG_LEVEL=3
+
 def packCx(data):
     real=None
     out=[]
@@ -79,7 +81,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.src = sb.DataSource()
         self.fftsink = sb.DataSink()
         self.psdsink = sb.DataSink()
-        self.comp = sb.launch('../psd.spd.xml')
+        self.comp = sb.launch('../psd.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
         
         self.src.connect(self.comp)
         self.comp.connect(self.fftsink, usesPortName='fft_dataFloat_out')
@@ -110,7 +112,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 self.assertAlmostEqual(sri.xstart, ifStart)
         
     def testScaBasicBehavior(self):
-        print "-------- TESTING Basic Behavior --------"
+        print "\n-------- TESTING Basic Behavior --------"
         #######################################################################
         # Launch the resource with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
@@ -159,10 +161,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Simulate regular resource shutdown
         self.comp.releaseObject()
         
-        print "*PASSED\n"
+        print "*PASSED"
         
     def testRealData1(self):
-        print "-------- TESTING w/REAL DATA1 --------"
+        print "\n-------- TESTING w/REAL DATA1 --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -231,10 +233,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
         self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
         
-        print "*PASSED\n"
+        print "*PASSED"
         
     def testRealData2(self):
-        print "-------- TESTING w/REAL DATA2 --------"
+        print "\n-------- TESTING w/REAL DATA2 --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -306,10 +308,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
         self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
 
-        print "*PASSED\n"
+        print "*PASSED"
 
     def testComplexData1(self):
-        print "-------- TESTING w/COMPLEX DATA1 --------"
+        print "\n-------- TESTING w/COMPLEX DATA1 --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -381,10 +383,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
         self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
         
-        print "*PASSED\n"
+        print "*PASSED"
 
     def testComplexData2(self):
-        print "-------- TESTING w/COMPLEX DATA2 --------"
+        print "\n-------- TESTING w/COMPLEX DATA2 --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -453,10 +455,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
         self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
         
-        print "*PASSED\n"
+        print "*PASSED"
 
     def testColRfReal(self):
-        print "-------- TESTING w/REAL ColRf --------"
+        print "\n-------- TESTING w/REAL ColRf --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -494,10 +496,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
 
 
-        print "*PASSED\n"
+        print "*PASSED"
 
     def testColRfCx(self):
-        print "-------- TESTING w/COMPLEX ColRf --------"
+        print "\n-------- TESTING w/COMPLEX ColRf --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -535,10 +537,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
 
 
-        print "*PASSED\n"
+        print "*PASSED"
         
     def testColRfCxToggle(self):
-        print "-------- TESTING w/COMPLEX rfFreqUnitsToggle COL_RF --------"
+        print "\n-------- TESTING w/COMPLEX rfFreqUnitsToggle COL_RF --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -587,10 +589,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         psdOut = self.psdsink.getData()
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
         
-        print "*PASSED\n"
+        print "*PASSED"
         
     def testChanRfCxToggle(self):
-        print "-------- TESTING w/COMPLEX rfFreqUnitsToggle CHAN_RF--------"
+        print "\n-------- TESTING w/COMPLEX rfFreqUnitsToggle CHAN_RF--------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
@@ -639,15 +641,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         psdOut = self.psdsink.getData()
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal)
         
-        print "*PASSED\n"
+        print "*PASSED"
         
-    def testEOS(self):
-        print "-------- TESTING EOS w/COMPLEX DATA --------"
+    def testEosFull(self):
+        print "\n-------- TESTING EOS w/COMPLEX DATA FULL --------"
         #---------------------------------
         # Start component and set fftSize
         #---------------------------------
         sb.start()
-        ID = "eos"
+        ID = "eosFull"
         fftSize = 4096
         self.comp.fftSize = fftSize
         self.comp.rfFreqUnits =  False
@@ -690,7 +692,111 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         psdOut = self.psdsink.getData()
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
         
-        print "*PASSED\n"
+        print "*PASSED"
+        
+    def testEosEmpty(self):
+        print "\n-------- TESTING EOS w/COMPLEX DATA EMPTY --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "eosEmpty"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  False
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(2*nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = True
+        colRfVal = 100e6
+        keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        fftOut = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+
+        time.sleep(.5)
+        self.src.push([], EOS=True, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        print 'pushed %s samples w/ EOS=true, fftSize=%s'%(0,fftSize)
+        time.sleep(.5)
+
+        # Get Output Data
+        self.assertTrue(self.fftsink.eos())
+        self.assertTrue(self.psdsink.eos())
+        fftOut = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        
+        print "*PASSED"
+        
+    def testEosPartial(self):
+        print "\n-------- TESTING EOS w/COMPLEX DATA PARTIAL --------"
+        #---------------------------------
+        # Start component and set fftSize
+        #---------------------------------
+        sb.start()
+        ID = "eosPartial"
+        fftSize = 4096
+        self.comp.fftSize = fftSize
+        self.comp.rfFreqUnits =  False
+        
+        #------------------------------------------------
+        # Create a test signal.
+        #------------------------------------------------
+        # 4096 samples of 7000Hz real signal at 65536 kHz
+        sample_rate = 65536.
+        nsamples = 4096
+
+        data = [random.random() for _ in xrange(2*nsamples)]
+        
+        #------------------------------------------------
+        # Test Component Functionality.
+        #------------------------------------------------
+        # Push Data
+        cxData = True
+        colRfVal = 100e6
+        keywords = [sb.io_helpers.SRIKeyword('COL_RF',colRfVal, 'float')]
+        self.src.push(data, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        time.sleep(.5)
+
+        # Get Output Data
+        fftOut = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        #pyFFT = abs(scipy.fft(tmpData, fftSize))
+
+        #Validate SRI Pushed Correctly
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+
+        time.sleep(.5)
+        self.src.push(data[:fftSize], EOS=True, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
+        print 'pushed %s samples w/ EOS=true, fftSize=%s'%(len(data[:fftSize]),fftSize)
+        time.sleep(.5)
+
+        # Get Output Data
+        self.assertTrue(self.fftsink.eos())
+        self.assertTrue(self.psdsink.eos())
+        fftOut = self.fftsink.getData()
+        psdOut = self.psdsink.getData()
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        
+        print "*PASSED"
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../psd.spd.xml") # By default tests all implementations
