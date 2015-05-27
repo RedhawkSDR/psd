@@ -29,12 +29,15 @@ program.  If not, see http://www.gnu.org/licenses/.
     <supportsinterface repid="IDL:CF/TestableObject:1.0" supportsname="TestableObject"/>
     <ports>
       <provides repid="IDL:BULKIO/dataFloat:1.0" providesname="dataFloat_in">
+        <description>Float input port for real or complex time domain data. </description>
         <porttype type="data"/>
       </provides>
       <uses repid="IDL:BULKIO/dataFloat:1.0" usesname="psd_dataFloat_out">
+        <description>Float output port for power spectral density. The output will be two dimentional data with a subsize of half the FFT size plus one for real input data and equal to the FFT size for complex input data. The PSD output data is always scalar.  </description>
         <porttype type="data"/>
       </uses>
       <uses repid="IDL:BULKIO/dataFloat:1.0" usesname="fft_dataFloat_out">
+        <description>Float output port for the FFT of the input data. The output will be two dimentional data with a subsize of half the FFT size plus one for real input data and equal to the FFT size for complex input data. The FFT output data is always complex.  </description>
         <porttype type="data"/>
       </uses>
     </ports>

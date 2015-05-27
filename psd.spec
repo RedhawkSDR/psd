@@ -40,15 +40,15 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  redhawk-devel >= 2.0
 Requires:       redhawk >= 2.0
 
+BuildRequires:  fftlib-devel >= 1.0.0
+Requires:       fftlib >= 1.0.0
+BuildRequires:  dsp-devel >= 1.1.0
+Requires:       dsp >= 1.1.0
+
 # Interface requirements
 BuildRequires:  bulkioInterfaces >= 2.0
 Requires:       bulkioInterfaces >= 2.0
 
-# Softpkg requirements
-BuildRequires:  dsp-devel >= 1.1.0
-Requires:       dsp >= 1.1.0
-BuildRequires:  fftlib-devel >= 1.0.0
-Requires:       fftlib >= 1.0.0
 
 %description
 Component %{name}

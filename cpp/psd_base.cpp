@@ -35,11 +35,11 @@ psd_base::psd_base(const char *uuid, const char *label) :
     loadProperties();
 
     dataFloat_in = new bulkio::InFloatPort("dataFloat_in");
-    addPort("dataFloat_in", dataFloat_in);
+    addPort("dataFloat_in", "Float input port for real or complex time domain data. ", dataFloat_in);
     psd_dataFloat_out = new bulkio::OutFloatPort("psd_dataFloat_out");
-    addPort("psd_dataFloat_out", psd_dataFloat_out);
+    addPort("psd_dataFloat_out", "Float output port for power spectral density. The output will be two dimentional data with a subsize of half the FFT size plus one for real input data and equal to the FFT size for complex input data. The PSD output data is always scalar.  ", psd_dataFloat_out);
     fft_dataFloat_out = new bulkio::OutFloatPort("fft_dataFloat_out");
-    addPort("fft_dataFloat_out", fft_dataFloat_out);
+    addPort("fft_dataFloat_out", "Float output port for the FFT of the input data. The output will be two dimentional data with a subsize of half the FFT size plus one for real input data and equal to the FFT size for complex input data. The FFT output data is always complex.  ", fft_dataFloat_out);
 }
 
 psd_base::~psd_base()
