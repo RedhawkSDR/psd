@@ -14,12 +14,11 @@
 # You should have received a copy of the GNU General Public License along with this 
 # program.  If not, see http://www.gnu.org/licenses/.
 #
-#
-ossieName = psd
-bindir = $(prefix)/dom/components/psd/cpp/
+ossieName = rh.psd
+bindir = $(prefix)/dom/components/rh/psd/cpp/
 bin_PROGRAMS = psd
 
-xmldir = $(prefix)/dom/components/psd/
+xmldir = $(prefix)/dom/components/rh/psd/
 dist_xml_DATA = ../psd.scd.xml ../psd.prf.xml ../psd.spd.xml
 ACLOCAL_AMFLAGS = -I$(OSSIEHOME)/share/aclocal/ossie
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
 # source distribution.
 #
@@ -18,12 +18,12 @@
 
 if [ "$1" = "rpm" ]; then
     # A very simplistic RPM build scenario
-    if [ -e psd.spec ]; then
+    if [ -e rh.psd.spec ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
-        cp -r ${mydir} ${tmpdir}/psd-2.0.0
-        tar czf ${tmpdir}/psd-2.0.0.tar.gz --exclude=".svn" -C ${tmpdir} psd-2.0.0
-        rpmbuild -ta ${tmpdir}/psd-2.0.0.tar.gz
+        cp -r ${mydir} ${tmpdir}/rh.psd-2.0.0
+        tar czf ${tmpdir}/rh.psd-2.0.0.tar.gz --exclude=".svn" -C ${tmpdir} rh.psd-2.0.0
+        rpmbuild -ta ${tmpdir}/rh.psd-2.0.0.tar.gz
         rm -rf $tmpdir
     else
         echo "Missing RPM spec file in" `pwd`
@@ -33,7 +33,19 @@ else
     for impl in cpp ; do
         cd $impl
         if [ -e build.sh ]; then
-            ./build.sh $*
+            if [ $# == 1 ]; then
+                if [ $1 == 'clean' ]; then
+                    rm -f Makefile
+                    rm -f config.*
+                    ./build.sh distclean
+                else
+                    ./build.sh $*
+                fi
+            else
+                ./build.sh $*
+            fi
+        elif [ -e Makefile ] && [ Makefile.am -ot Makefile ]; then
+            make $*
         elif [ -e reconf ]; then
             ./reconf && ./configure && make $*
         else

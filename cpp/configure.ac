@@ -15,7 +15,7 @@
 # program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(psd, 2.0.0)
+AC_INIT(rh.psd, 2.0.0)
 AM_INIT_AUTOMAKE(nostdinc)
 
 AC_PROG_CC

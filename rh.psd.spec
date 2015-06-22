@@ -27,7 +27,7 @@ Prefix:         %{_prefix}
 %define _mandir        %{_prefix}/man
 %define _infodir       %{_prefix}/info
 
-Name:           psd
+Name:           rh.psd
 Version:        2.0.0
 Release:        1%{?dist}
 Summary:        Component %{name}
@@ -64,7 +64,7 @@ Component %{name}
 # Implementation cpp
 pushd cpp
 ./reconf
-%define _bindir %{_prefix}/dom/components/psd/cpp
+%define _bindir %{_prefix}/dom/components/rh/psd/cpp
 %configure
 make %{?_smp_mflags}
 popd
@@ -74,7 +74,7 @@ popd
 rm -rf $RPM_BUILD_ROOT
 # Implementation cpp
 pushd cpp
-%define _bindir %{_prefix}/dom/components/psd/cpp
+%define _bindir %{_prefix}/dom/components/rh/psd/cpp
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
 
@@ -85,9 +85,9 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,redhawk,redhawk,-)
-%dir %{_prefix}/dom/components/psd
-%{_prefix}/dom/components/psd/psd.scd.xml
-%{_prefix}/dom/components/psd/psd.prf.xml
-%{_prefix}/dom/components/psd/psd.spd.xml
-%{_prefix}/dom/components/psd/cpp
+%dir %{_prefix}/dom/components/rh/psd
+%{_prefix}/dom/components/rh/psd/psd.scd.xml
+%{_prefix}/dom/components/rh/psd/psd.prf.xml
+%{_prefix}/dom/components/rh/psd/psd.spd.xml
+%{_prefix}/dom/components/rh/psd/cpp
 
