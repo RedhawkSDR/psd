@@ -29,10 +29,9 @@ OSSIE_SDRROOT_AS_PREFIX
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Dependencies
-PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 2.0 omniORB4 >= 4.1.0])
+export PKG_CONFIG_PATH="${prefix}/dom/deps/dsp/cpp/lib/pkgconfig:${prefix}/dom/deps/fftlib/cpp/lib/pkgconfig:$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
+PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 2.0 omniORB4 >= 4.1.0 dsp >= 1.1.0 fftlib >= 1.0.0 ])
 PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 2.0])
-RH_SOFTPKG_CXX([/deps/fftlib/fftlib.spd.xml],[cpp])
-RH_SOFTPKG_CXX([/deps/dsp/dsp.spd.xml],[cpp])
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
