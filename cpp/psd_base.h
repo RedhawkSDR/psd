@@ -30,6 +30,10 @@ class psd_base : public Component, protected ThreadedComponent
         psd_base(const char *uuid, const char *label);
         ~psd_base();
 
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
+    /**
+     * \cond INTERNAL
+     */
         void start() throw (CF::Resource::StartError, CORBA::SystemException);
 
         void stop() throw (CF::Resource::StopError, CORBA::SystemException);
@@ -37,18 +41,30 @@ class psd_base : public Component, protected ThreadedComponent
         void releaseObject() throw (CF::LifeCycle::ReleaseError, CORBA::SystemException);
 
         void loadProperties();
+    /**
+     * \endcond
+     */
+#endif
 
     protected:
         // Member variables exposed as properties
+        /// Property: fftSize
         CORBA::ULong fftSize;
+        /// Property: overlap
         CORBA::Long overlap;
+        /// Property: numAvg
         CORBA::ULong numAvg;
+        /// Property: logCoefficient
         float logCoefficient;
+        /// Property: rfFreqUnits
         bool rfFreqUnits;
 
         // Ports
+        /// Port: dataFloat_in
         bulkio::InFloatPort *dataFloat_in;
+        /// Port: psd_dataFloat_out
         bulkio::OutFloatPort *psd_dataFloat_out;
+        /// Port: fft_dataFloat_out
         bulkio::OutFloatPort *fft_dataFloat_out;
 
     private:

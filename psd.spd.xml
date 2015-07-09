@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='UTF-8'?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
 <!-- 
 This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License along with thi
 program.  If not, see http://www.gnu.org/licenses/.
 -->
 <softpkg id="DCE:c77d5f12-16d3-11e5-a1b5-3417ebc4aab5" name="rh.psd" type="2.0.0" version="2.0.0">
-  <title/>
+  <title></title>
   <author>
     <name>REDHAWK</name>
   </author>
@@ -41,19 +41,19 @@ This component provides both the real-valued PSD and the complex FFT outputs.</d
     <programminglanguage name="C++"/>
     <humanlanguage name="EN"/>
     <os name="Linux"/>
-    <dependency type="runtime_requirements">
-      <softpkgref>
-        <localfile name="/deps/fftlib/fftlib.spd.xml"/>
-        <implref refid="cpp"/>
-      </softpkgref>
-    </dependency>
-    <dependency type="runtime_requirements">
-      <softpkgref>
-        <localfile name="/deps/dsp/dsp.spd.xml"/>
-        <implref refid="cpp"/>
-      </softpkgref>
-    </dependency>
     <processor name="x86"/>
     <processor name="x86_64"/>
+    <dependency type="runtime_requirements">
+      <softpkgref>
+        <localfile name="/deps/rh/dsp/dsp.spd.xml"/>
+        <implref refid="cpp"/>
+      </softpkgref>
+    </dependency>
+    <dependency type="runtime_requirements">
+      <softpkgref>
+        <localfile name="/deps/rh/fftlib/fftlib.spd.xml"/>
+        <implref refid="cpp"/>
+      </softpkgref>
+    </dependency>
   </implementation>
 </softpkg>

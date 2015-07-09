@@ -32,6 +32,7 @@ psd_base::psd_base(const char *uuid, const char *label) :
     Component(uuid, label),
     ThreadedComponent()
 {
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
     loadProperties();
 
     dataFloat_in = new bulkio::InFloatPort("dataFloat_in");
@@ -40,6 +41,7 @@ psd_base::psd_base(const char *uuid, const char *label) :
     addPort("psd_dataFloat_out", "Float output port for power spectral density. The output will be two dimentional data with a subsize of half the FFT size plus one for real input data and equal to the FFT size for complex input data. The PSD output data is always scalar.  ", psd_dataFloat_out);
     fft_dataFloat_out = new bulkio::OutFloatPort("fft_dataFloat_out");
     addPort("fft_dataFloat_out", "Float output port for the FFT of the input data. The output will be two dimentional data with a subsize of half the FFT size plus one for real input data and equal to the FFT size for complex input data. The FFT output data is always complex.  ", fft_dataFloat_out);
+#endif
 }
 
 psd_base::~psd_base()
@@ -52,6 +54,7 @@ psd_base::~psd_base()
     fft_dataFloat_out = 0;
 }
 
+#ifdef BEGIN_AUTOCOMPLETE_IGNORE
 /*******************************************************************************************
     Framework-level functions
     These functions are generally called by the framework to perform housekeeping.
@@ -91,7 +94,7 @@ void psd_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(overlap,
                 0,
@@ -100,7 +103,7 @@ void psd_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(numAvg,
                 0,
@@ -109,7 +112,7 @@ void psd_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(logCoefficient,
                 0.0,
@@ -118,7 +121,7 @@ void psd_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(rfFreqUnits,
                 false,
@@ -127,8 +130,9 @@ void psd_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
 }
+#endif
 
 

@@ -1,3 +1,7 @@
-15c5ad4c99dc3c1557cb63e4d88576b8  configure.ac
+ce8784ddba909f0cd7c4d4de6dfccece  main.cpp
+c99df9fa4ab0cd042eac42fcee6441c3  reconf
+834f5d985e8f0eb2504815ec4849193b  psd_base.h
+1be211aa230b295383afdd3c21c50e8f  configure.ac
 b2f5d937a387f1c7372c749eb2886c7c  Makefile.am
+2d446e9e92753cfb476712d607b51578  psd_base.cpp
 b87651ea3565402473fb088004430fbf  build.sh

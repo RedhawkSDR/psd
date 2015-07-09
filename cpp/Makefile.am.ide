@@ -25,5 +25,5 @@ redhawk_SOURCES_auto += psd.cpp
 redhawk_SOURCES_auto += psd.h
 redhawk_SOURCES_auto += psd_base.cpp
 redhawk_SOURCES_auto += psd_base.h
-redhawk_INCLUDES_auto = -I/var/redhawk/sdr/dom/deps/dsp/include
-redhawk_INCLUDES_auto += -I/var/redhawk/sdr/dom/deps/fftlib/include
+redhawk_INCLUDES_auto = -I/var/redhawk/sdr/dom/deps/rh/fftlib/include
+redhawk_INCLUDES_auto += -I/var/redhawk/sdr/dom/deps/rh/dsp/include
