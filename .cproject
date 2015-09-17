@@ -43,11 +43,11 @@ program.  If not, see http://www.gnu.org/licenses/.
 								<option id="gnu.cpp.compiler.exe.debug.option.optimization.level.353367817" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.2118240011" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.2072196612" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${OssieHome}/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/omnithread"/>
+									<listOptionValue builtIn="false" value="/usr/include/omniORB4"/>
 									<listOptionValue builtIn="false" value="&quot;${SdrRoot}/dom/deps/rh/fftlib/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${SdrRoot}/dom/deps/rh/dsp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${OssieHome}/include&quot;"/>
-									<listOptionValue builtIn="false" value="/usr/include/omniORB4"/>
-									<listOptionValue builtIn="false" value="/usr/include/omnithread"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1498910566" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
@@ -119,11 +119,11 @@ program.  If not, see http://www.gnu.org/licenses/.
 								<option id="gnu.cpp.compiler.exe.release.option.optimization.level.299823016" name="Optimization Level" superClass="gnu.cpp.compiler.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.release.option.debugging.level.261025427" name="Debug Level" superClass="gnu.cpp.compiler.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1241628943" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${OssieHome}/include&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/include/omnithread"/>
+									<listOptionValue builtIn="false" value="/usr/include/omniORB4"/>
 									<listOptionValue builtIn="false" value="&quot;${SdrRoot}/dom/deps/rh/fftlib/include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${SdrRoot}/dom/deps/rh/dsp/include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${OssieHome}/include&quot;"/>
-									<listOptionValue builtIn="false" value="/usr/include/omniORB4"/>
-									<listOptionValue builtIn="false" value="/usr/include/omnithread"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1427052866" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
