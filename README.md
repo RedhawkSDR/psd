@@ -1,16 +1,13 @@
-# REDHAWK Basic Components psd
+# REDHAWK Basic Components rh.psd
  
 ## Description
 
-Contains the source and build script for the REDHAWK Basic Components psd.
+Contains the source and build script for the REDHAWK Basic Components rh.psd. FFT-based power spectral density (PSD) component that transforms data from the time domain to the frequency domain.  Output data is framed data where each frame contains the frequncy domain representation of a subsection of the input.
+
+## Installation Instructions
+This asset requires the rh.dsp and rh.fftlib shared libraries. These must be installed in order to build and run this asset.
+To build from source, run the `build.sh` script found at the top level directory. To install to $SDRROOT run, `build.sh install` 
  
-## REDHAWK Documentation
-
-REDHAWK Website: [www.redhawksdr.org](http://www.redhawksdr.org)
-
-Overview and Getting Started Guide: [PDF](http://sourceforge.net/projects/redhawksdr/files/redhawk-doc/1.10.0/REDHAWK_Overview_v1.10.0.pdf/download "PDF") [HTML](http://redhawksdr.github.com/Documentation/gettingstarted/main.html "HTML")
-
-Full REDHAWK Manual: [PDF](http://sourceforge.net/projects/redhawksdr/files/redhawk-doc/1.10.0/REDHAWK_Manual_v1.10.0.pdf/download "PDF") [HTML](http://redhawksdr.github.com/Documentation/main.html "HTML")
  
 ## Copyrights
 
@@ -18,6 +15,6 @@ This work is protected by Copyright. Please refer to the [Copyright File](COPYRI
 
 ## License
 
-REDHAWK Basic Components psd is licensed under the GNU General Public License (GPL).
+REDHAWK Basic Component rh.psd is licensed under the GNU General Public License (GPL).
 
 
