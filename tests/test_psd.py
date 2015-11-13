@@ -35,6 +35,32 @@ import random
 
 DEBUG_LEVEL=3
 
+PRECISION=6
+NUM_PLACES=6
+
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0,debug=False):
+    ''' Return True if the values a and b are close to each other and False otherwise.
+
+        Whether or not two values are considered close is determined according to given absolute and relative tolerances.
+
+        rel_tol is the relative tolerance - it is the maximum allowed difference between a and b, relative to the larger
+        absolute value of a or b. For example, to set a tolerance of 5%, pass rel_tol=0.05. The default tolerance is 1e-09,
+        which assures that the two values are the same within about 9 decimal digits. rel_tol must be greater than zero.
+
+        abs_tol is the minimum absolute tolerance - useful for comparisons near zero. abs_tol must be at least zero.
+        
+        Note: take from math module in newer versions of Python (>= 3.5)
+    '''
+    retval = abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+    if debug:
+        _abs=abs(a-b)
+        _tol=max(rel_tol * max(abs(a), abs(b)), abs_tol)
+        _rel=rel_tol * max(abs(a), abs(b))
+        print '.' if retval else 'F', repr(a), repr(b), repr(_abs), repr(_tol), repr(_rel), repr(abs_tol)
+
+    return retval
+    #return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
 def packCx(data):
     real=None
     out=[]
@@ -111,6 +137,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             else:
                 self.assertAlmostEqual(sri.xstart, ifStart)
         
+    def assert_isclose(self,a,b,precision=7,places=7):
+        ''' Similar to assertAlmostEqual, but based on digits of precision rather than decimal places
+            For 32-bit systems (float), the greatest precision possible is 7 digits.
+            For 64-bit systems (double), the greatest precision possible is 15 digits.
+            Set places for numbers near 0, where relative precision may fail.
+        '''
+        rel_tol=10**(-1*precision)
+        abs_tol=10**(-1*places)
+        # Rather than reimplement assert, call assertAlmostEqual which will fail
+        isclose(a,b,rel_tol,abs_tol) or self.assertAlmostEqual(a,b,places)
+
     def testScaBasicBehavior(self):
         print "\n-------- TESTING Basic Behavior --------"
         #######################################################################
@@ -447,13 +484,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         pyFFTIndex = pyFFT.tolist().index(pyFFTMax)
         fftIndex = fftOut.index(fftOutMax)
         psdIndex = psdOut.index(psdOutMax)
-        
+
+        # additional checks due to floating point precision
+        # look at value before peak to see if w/in tolerance
+        # if so, use that as peak index to report the FIRST peak value
+        rel_tol=10**(-1*PRECISION)
+        abs_tol=10**(-1*NUM_PLACES)
+        if isclose(pyFFT[pyFFTIndex-1], pyFFT[pyFFTIndex], rel_tol, abs_tol):
+            pyFFTIndex = pyFFTIndex-1
+        if isclose(fftOut[fftIndex-1], fftOut[fftIndex], rel_tol, abs_tol):
+            fftIndex = fftIndex-1
+        if isclose(psdOut[psdIndex-1], psdOut[psdIndex], rel_tol, abs_tol):
+            psdIndex = psdIndex-1
+
         # Check that the component max values and index values are equal to python's
-        threshold = 0.000001
-        self.assertFalse(abs(pyFFTMax-fftOutMax) >= fftOutMax*threshold)
-        self.assertFalse(abs(pyMaxSquared-psdOutMax) >= psdOutMax*threshold)
-        self.assertFalse(abs(pyFFTIndex-fftIndex) >= 1.0)
-        self.assertFalse(abs(pyFFTIndex-psdIndex) >= 1.0)
+        self.assert_isclose(pyFFTMax,fftOutMax,PRECISION,NUM_PLACES)
+        self.assert_isclose(pyMaxSquared,psdOutMax,PRECISION,NUM_PLACES)
+        self.assertEqual(pyFFTIndex,fftIndex)
+        self.assertEqual(pyFFTIndex,psdIndex)
         
         print "*PASSED"
 
