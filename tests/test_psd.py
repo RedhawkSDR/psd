@@ -119,9 +119,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.releaseObject()
         ossie.utils.testing.ScaComponentTestCase.tearDown(self)
         
-    def validateSRIPushing(self, streamID, inputCmplx, inputRate=1.0, fftSize=1.0, rfVal = None):
+    def validateSRIPushing(self, streamID, inputCmplx, inputRate=1.0, fftSize=1.0, rfVal = None, SRIKeywords = None):
+
+        # Confirm that all of the keywords given are passed on
+        if SRIKeywords:
+          self.assertEqual(len(SRIKeywords), len(self.psdsink.sri().keywords), "The provided SRI Keyword length does not equal what was received by the PSD output SRI")
+          self.assertEqual(len(SRIKeywords), len(self.fftsink.sri().keywords), "The provided SRI Keyword length does not equal what was received by the FFT output SRI")
+  
+          for psd_keyword in self.psdsink.sri().keywords:
+            found_match = False
+            for given_keyword in SRIKeywords:
+              if given_keyword._name == psd_keyword.id and given_keyword._value == psd_keyword.value.value():
+                print "Found match"
+                found_match = True
+            self.assertTrue(found_match, "Not all keywords in source matched output of PSD port")
+
+
         xdelta = inputRate/fftSize
-        
+
         for sri in (self.fftsink.sri(), self.psdsink.sri()):
             self.assertEqual(sri.streamID, streamID)
             self.assertAlmostEqual(sri.xdelta, xdelta)
@@ -541,7 +556,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
 
 
         print "*PASSED"
@@ -582,7 +597,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
 
 
         print "*PASSED"
@@ -625,7 +640,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
 
         self.comp.rfFreqUnits =  True
         time.sleep(.5)
@@ -635,7 +650,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Get Output Data
         data = self.fftsink.getData()
         psdOut = self.psdsink.getData()
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
         
@@ -687,7 +702,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Get Output Data
         data = self.fftsink.getData()
         psdOut = self.psdsink.getData()
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
         
@@ -729,7 +744,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal, SRIKeywords = keywords)
         
         # Push partial block
         time.sleep(.5)
@@ -745,7 +760,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Get Output Data
         data = self.fftsink.getData()
         psdOut = self.psdsink.getData()
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
         
@@ -785,7 +800,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
 
         time.sleep(.5)
         self.src.push(data, EOS=True, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
@@ -796,7 +811,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue(self.psdsink.eos())
         data = self.fftsink.getData()
         psdOut = self.psdsink.getData()
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
         
@@ -836,7 +851,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
 
         time.sleep(.5)
         self.src.push([], EOS=True, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
@@ -848,7 +863,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue(self.psdsink.eos())
         fftOut = self.fftsink.getData()
         psdOut = self.psdsink.getData()
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
         
@@ -888,7 +903,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
 
         time.sleep(.5)
         self.src.push(data[:fftSize], EOS=True, streamID=ID, sampleRate=sample_rate, complexData=cxData, SRIKeywords = keywords)
@@ -900,7 +915,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue(self.psdsink.eos())
         fftOut = self.fftsink.getData()
         psdOut = self.psdsink.getData()
-        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal)
+        self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
     

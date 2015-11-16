@@ -340,6 +340,14 @@ void PsdProcessor::updateSRI(const bulkio::FloatDataBlock &block){
 	}
 
 	BULKIO::StreamSRI outputSRI;
+
+	// Pass along any keywords that were in the source
+	outputSRI.keywords.length(block.sri().keywords.length());
+
+	for (size_t i = 0; i < block.sri().keywords.length(); ++i) {
+		outputSRI.keywords[i] = block.sri().keywords[i];
+	}
+
 	double xdelta_in = block.xdelta();
 	outputSRI.xdelta = 1.0/(xdelta_in*params_cache.fftSz);
 
