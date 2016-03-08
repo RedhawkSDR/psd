@@ -250,15 +250,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
         
         #Convert Redhawk interleaved complex data to python complex for fftOut
-        fftOut = packCx(data)
+        fftOut = packCx(fftOut)
         
         # Adjust length of data for accurate comparisons
         pyFFT = pyFFT[0:fftSize/2]
@@ -325,15 +325,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         pyFFT = abs(scipy.fft(tmpData, fftSize))
         
         #Validate SRI Pushed Correctly
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
 
         #Convert Redhawk interleaved complex data to python complex for fftOut
-        fftOut = packCx(data)
+        fftOut = packCx(fftOut)
 
         # Adjust length of data for accurate comparisons
         pyFFT = pyFFT[0:fftSize/2]
@@ -400,15 +400,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         pyFFT = abs(scipy.fft(tmpData, fftSize))
  
         #Validate SRI Pushed Correctly
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
         
         #Convert Redhawk interleaved complex data to python complex for fftOut
-        fftOut = packCx(data)
+        fftOut = packCx(fftOut)
         
         # Adjust length of data for accurate comparisons
         pyFFT = pyFFT[0:fftSize/2]
@@ -472,15 +472,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         pyFFT = abs(scipy.fft(tmpData, fftSize))
  
         #Validate SRI Pushed Correctly
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize)
         
         #Convert Redhawk interleaved complex data to python complex for fftOut
-        fftOut = packCx(data)
+        fftOut = packCx(fftOut)
         
         # Adjust length of data for accurate comparisons
         pyFFT = pyFFT[0:fftSize/2]
@@ -551,8 +551,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -592,8 +592,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -635,8 +635,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -648,8 +648,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
@@ -687,8 +687,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -700,8 +700,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
@@ -739,8 +739,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -758,8 +758,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, chanRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
@@ -795,8 +795,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -809,8 +809,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Get Output Data
         self.assertTrue(self.fftsink.eos())
         self.assertTrue(self.psdsink.eos())
-        data = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
@@ -846,8 +846,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        fftOut = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -861,8 +861,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Get Output Data
         self.assertTrue(self.fftsink.eos())
         self.assertTrue(self.psdsink.eos())
-        fftOut = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData() # should be empty
+        psdOut = self.psdsink.getData() # should be empty
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
@@ -898,8 +898,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(.5)
 
         # Get Output Data
-        fftOut = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         #pyFFT = abs(scipy.fft(tmpData, fftSize))
 
         #Validate SRI Pushed Correctly
@@ -913,8 +913,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # Get Output Data
         self.assertTrue(self.fftsink.eos())
         self.assertTrue(self.psdsink.eos())
-        fftOut = self.fftsink.getData()
-        psdOut = self.psdsink.getData()
+        fftOut = self.fftsink.getData()[0] # use first frame
+        psdOut = self.psdsink.getData()[0] # use first frame
         self.validateSRIPushing(ID, cxData, sample_rate, fftSize, colRfVal, SRIKeywords = keywords)
         
         print "*PASSED"
