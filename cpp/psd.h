@@ -26,73 +26,73 @@
 
 
 typedef struct ParamStruct {
-	size_t fftSz;
-	bool fftSzChanged;
-	size_t strideSize;
-	size_t numAverage;
-	bool numAverageChanged;
-	int overlap;
-	bool doFFT;
-	bool doPSD;
-	bool rfFreqUnits;
-	float logCoeff;
-	bool updateSRI;
+    size_t fftSz;
+    bool fftSzChanged;
+    size_t strideSize;
+    size_t numAverage;
+    bool numAverageChanged;
+    int overlap;
+    bool doFFT;
+    bool doPSD;
+    bool rfFreqUnits;
+    float logCoeff;
+    bool updateSRI;
 } param_struct;
 
 
 class PsdProcessor : protected ThreadedComponent
 {
     ENABLE_LOGGING
-	//class to take care of psd processing
-	//handles real/complex with transitions and
-	//output averaging and overlap and buffering and db conversion
-	//basically - you give it time domain data and it gives you frequency domain
-	//
-	//this class does both fft,psd, or both (or neither) as requested at processing time
+    //class to take care of psd processing
+    //handles real/complex with transitions and
+    //output averaging and overlap and buffering and db conversion
+    //basically - you give it time domain data and it gives you frequency domain
+    //
+    //this class does both fft,psd, or both (or neither) as requested at processing time
 public:
-	PsdProcessor(bulkio::InFloatStream inStream, bulkio::OutFloatStream fftStream, bulkio::OutFloatStream psdStream,
-			size_t fftSize, int overlap, size_t numAvg,	float logCoeff,	bool doFFT,	bool doPSD,	bool rfFreqUnits, float delay=0.1);
-	~PsdProcessor();
+    PsdProcessor(bulkio::InFloatStream inStream, bulkio::OutFloatStream fftStream, bulkio::OutFloatStream psdStream,
+            size_t fftSize, int overlap, size_t numAvg,    float logCoeff,    bool doFFT,    bool doPSD,    bool rfFreqUnits, float delay=0.1);
+    ~PsdProcessor();
 
-	void updateFftSize(size_t fftSize);
-	void updateOverlap(int overlap);
-	void updateNumAvg(size_t avg);
-	void updateRfFreqUnits(bool enable);
-	void updateLogCoefficient(float logCoeff);
-	void updateActions(bool psd, bool fft);
-	void forceSRIUpdate();
-	bool finished();
+    void updateFftSize(size_t fftSize);
+    void updateOverlap(int overlap);
+    void updateNumAvg(size_t avg);
+    void updateRfFreqUnits(bool enable);
+    void updateLogCoefficient(float logCoeff);
+    void updateActions(bool psd, bool fft);
+    void forceSRIUpdate();
+    bool finished();
     void stop() throw (CF::Resource::StopError, CORBA::SystemException);
 
 private:
-	int serviceFunction();
-	void updateSRI(const bulkio::FloatDataBlock &block);
-	void flush();
+    int serviceFunction();
+    void updateSRI(const bulkio::FloatDataBlock &block);
+    void flush();
 
-	// in/out streams
-	bulkio::InFloatStream in;
-	bulkio::OutFloatStream outFFT;
-	bulkio::OutFloatStream outPSD;
+    // in/out streams
+    bulkio::InFloatStream in;
+    bulkio::OutFloatStream outFFT;
+    bulkio::OutFloatStream outPSD;
 
-	// PSD processing object ptrs
-	RealPsd* realPsd_;
-	ComplexPsd* complexPsd_;
+    // PSD processing object ptrs
+    RealPsd* realPsd_;
+    ComplexPsd* complexPsd_;
 
-	//internal processing vectors
-	RealFFTWVector realIn_;
-	ComplexFFTWVector complexIn_;
-	ComplexFFTWVector fftOut_;
-	RealFFTWVector psdOut_;
+    //internal processing vectors
+    RealFFTWVector realIn_;
+    ComplexFFTWVector complexIn_;
+    ComplexFFTWVector fftOut_;
+    RealFFTWVector psdOut_;
 
-	// for psd averaging
-	VectorMean<float, fftwf_allocator<float> > vecMean_;
-	std::vector<float> psdAverage_;
+    // for psd averaging
+    VectorMean<float, fftwf_allocator<float> > vecMean_;
+    std::vector<float> psdAverage_;
 
-	// parameters and status
-	bool eos;
-	param_struct params;
-	param_struct params_cache;
-	boost::shared_ptr<boost::mutex> paramLock;
+    // parameters and status
+    bool eos;
+    param_struct params;
+    param_struct params_cache;
+    boost::shared_ptr<boost::mutex> paramLock;
 };
 
 class psd_i : public psd_base
@@ -105,20 +105,20 @@ class psd_i : public psd_base
         int serviceFunction();
         void stop() throw (CF::Resource::StopError, CORBA::SystemException);
         void streamAdded(bulkio::InFloatStream stream);
-	private:
-		void fftSizeChanged(unsigned int oldValue, unsigned int newValue);
-		void numAvgChanged(unsigned int oldValue, unsigned int newValue);
-		void overlapChanged(int oldValue, int newValue);
-		void rfFreqUnitsChanged(bool oldValue, bool newValue);
-		void logCoeffChanged(float oldValue, float newValue);
-		void clearThreads();
+    private:
+        void fftSizeChanged(unsigned int oldValue, unsigned int newValue);
+        void numAvgChanged(unsigned int oldValue, unsigned int newValue);
+        void overlapChanged(int oldValue, int newValue);
+        void rfFreqUnitsChanged(bool oldValue, bool newValue);
+        void logCoeffChanged(float oldValue, float newValue);
+        void clearThreads();
 
-		typedef std::map<std::string, boost::shared_ptr<PsdProcessor> > map_type;
-		map_type stateMap;
-		boost::mutex stateMapLock;
+        typedef std::map<std::string, boost::shared_ptr<PsdProcessor> > map_type;
+        map_type stateMap;
+        boost::mutex stateMapLock;
 
-		bool doPSD;
-		bool doFFT;
+        bool doPSD;
+        bool doFFT;
 
         bulkio::MemberConnectionEventListener<psd_i> listener;
         void callBackFunc( const char* connectionId);
