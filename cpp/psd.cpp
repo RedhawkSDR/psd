@@ -414,15 +414,7 @@ psd_i::psd_i(const char *uuid, const char *label) :
    doPSD(false),
    doFFT(false),
    listener(*this, &psd_i::callBackFunc)
-
 {
-	addPropertyListener(fftSize, this, &psd_i::fftSizeChanged);
-	addPropertyListener(overlap, this, &psd_i::overlapChanged);
-	addPropertyListener(numAvg, this, &psd_i::numAvgChanged);
-	addPropertyListener(rfFreqUnits, this, &psd_i::rfFreqUnitsChanged);
-	addPropertyListener(logCoefficient, this, &psd_i::logCoeffChanged);
-
-	dataFloat_in->addStreamListener(this, &psd_i::streamAdded);
 	psd_dataFloat_out->setNewConnectListener(&listener);
 	fft_dataFloat_out->setNewConnectListener(&listener);
 }
@@ -430,6 +422,20 @@ psd_i::psd_i(const char *uuid, const char *label) :
 psd_i::~psd_i()
 {
 	clearThreads();
+}
+
+void psd_i::constructor()
+{
+    /***********************************************************************************
+     This is the RH constructor. All properties are properly initialized before this function is called
+    ***********************************************************************************/
+	addPropertyListener(fftSize, this, &psd_i::fftSizeChanged);
+	addPropertyListener(overlap, this, &psd_i::overlapChanged);
+	addPropertyListener(numAvg, this, &psd_i::numAvgChanged);
+	addPropertyListener(rfFreqUnits, this, &psd_i::rfFreqUnitsChanged);
+	addPropertyListener(logCoefficient, this, &psd_i::logCoeffChanged);
+
+	dataFloat_in->addStreamListener(this, &psd_i::streamAdded);
 }
 /***********************************************************************************************
 

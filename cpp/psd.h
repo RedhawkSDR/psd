@@ -101,6 +101,7 @@ class psd_i : public psd_base
     public:
         psd_i(const char *uuid, const char *label);
         ~psd_i();
+        void constructor();
         int serviceFunction();
         void stop() throw (CF::Resource::StopError, CORBA::SystemException);
         void streamAdded(bulkio::InFloatStream stream);
