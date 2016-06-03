@@ -17,7 +17,7 @@ PURPOSE.  See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with this 
 program.  If not, see http://www.gnu.org/licenses/.
 -->
-<softpkg id="DCE:c77d5f12-16d3-11e5-a1b5-3417ebc4aab5" name="rh.psd" type="2.0.0" version="2.0.1">
+<softpkg id="DCE:c77d5f12-16d3-11e5-a1b5-3417ebc4aab5" name="rh.psd" type="2.0.0" version="2.0.2">
   <title></title>
   <author>
     <name>REDHAWK</name>
