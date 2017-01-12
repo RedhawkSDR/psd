@@ -24,8 +24,8 @@ import time
 from ossie.utils import sb
 try:
     from pylab import figure, plot, grid, show, title
-except ImportError:
-    print "no pylab for you"
+except (ImportError, RuntimeError) as e:
+    print "Cannot import pylab due to exception:", e
     figure=None
 from numpy import cos, sin, arange, pi, correlate, linspace
 import scipy.fftpack
