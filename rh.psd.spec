@@ -28,8 +28,8 @@ Prefix:         %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           rh.psd
-Version:        2.0.2
-Release:        2%{?dist}
+Version:        2.0.3
+Release:        1%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components
