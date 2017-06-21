@@ -29,7 +29,7 @@ Prefix:         %{_prefix}
 
 Name:           rh.psd
 Version:        2.0.2
-Release:        2%{?dist}
+Release:        3%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components
@@ -92,4 +92,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_prefix}/dom/components/rh/psd/psd.prf.xml
 %{_prefix}/dom/components/rh/psd/psd.spd.xml
 %{_prefix}/dom/components/rh/psd/cpp
+
+%changelog
+* Wed Jun 21 2017 Ryan Bauman - 2.0.2-3
+- Mass rebuild for REDHAWK 2.1.1
 
