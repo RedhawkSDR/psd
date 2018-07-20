@@ -1,8 +1,8 @@
 variables:
   rh_20_release: '2-0-8'
   rh_22_release: '2-2-0'
-  dsp_version: '2.0.0-5'
-  fftlib_version: '2.1.0-2'
+  dsp_version: '2-0-0-5'
+  fftlib_version: '2-1-0-rc2'
   namespace: rh.
   test_suite: test_$CI_PROJECT_NAME.py
 
